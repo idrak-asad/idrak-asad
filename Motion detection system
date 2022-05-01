@@ -1,0 +1,142 @@
+int giris1 = A0;
+int giris2 = A1;
+int giris3 = A2;
+int cixis = 8;
+int cixis2 = 7;
+int readGiris1 = 0, readGiris2 = 0, readGiris3 = 0;
+bool boolGiris1 = false, boolGiris2 = false, boolGiris3 = false;
+int gozle = 3000;
+void setup() {
+  Serial.begin(9600);
+  pinMode(cixis, OUTPUT);
+  pinMode(cixis2, OUTPUT);
+  // pinMode(giris1,INPUT);
+  //pinMode(giris2,INPUT);
+  //pinMode(giris3,INPUT);
+  delay(5000);
+  // readGiris1[]=;
+  Serial.print("start");
+
+}
+
+void loop() {
+  /*
+    for(int i=3;i>=0;i--){
+    readGiris1[i+1]=readGiris1[i];
+    Serial.print("loop");
+    }
+  */
+  Serial.println("  ");
+  readGiris1 = analogRead(giris1);
+  // readGiris2 = analogRead(giris2);
+  // readGiris3 = analogRead(giris3);
+
+
+  Serial.print(readGiris1);
+  Serial.print("  ");
+  Serial.print(readGiris2);
+  Serial.print("  ");
+  Serial.println(readGiris3);
+
+  bool birread = false;
+  /*
+    for (int i=0;i<5;i++){
+    if (readGiris1[i]>500){
+     birread=true;
+     break;
+    }
+    }
+  */
+  //readGiris1[0] > 500 or readGiris1[1] > 500 or readGiris1[2] > 500 or  readGiris1[3] > 500 or readGiris1[4] > 500
+  if (readGiris1 > 80) {
+    delay(50);
+    readGiris1 = analogRead(giris1);
+    if (readGiris1 > 80) {
+      delay(50);
+      readGiris1 = analogRead(giris1);
+      if (readGiris1 > 80) {
+        digitalWrite(cixis2, LOW);
+        digitalWrite(cixis, HIGH);
+        delay(8000);
+        digitalWrite(cixis, HIGH);
+        //digitalWrite(cixis2, LOW);
+        Serial.println("high");
+        delay(gozle);
+        digitalWrite(cixis, LOW);
+        digitalWrite(cixis2, HIGH);
+        Serial.println("low");
+        delay(500);
+        digitalWrite(cixis2, LOW);
+        Serial.println("son");
+        boolGiris1 = true;
+      }
+    }
+  }
+  //else {
+  // boolGiris1 = false;
+  //}
+  //readGiris1 = analogRead(giris1);
+  readGiris2 = analogRead(giris2);
+  //readGiris3 = analogRead(giris3);
+  Serial.print(readGiris1);
+  Serial.print("  ");
+  Serial.print(readGiris2);
+  Serial.print("  ");
+  Serial.println(readGiris3);
+  if (readGiris2 > 80) {
+    delay(50);
+    readGiris2 = analogRead(giris2);
+    if (readGiris2 > 80) {
+      delay(50);
+      readGiris2 = analogRead(giris2);
+      if (readGiris2 > 80) {
+        digitalWrite(cixis2, LOW);
+        digitalWrite(cixis, HIGH);
+        delay(8000);
+        digitalWrite(cixis, HIGH);
+        delay(gozle);
+        digitalWrite(cixis, LOW);
+        digitalWrite(cixis2, HIGH);
+        delay(500);
+        digitalWrite(cixis2, LOW);
+        boolGiris2 = true;
+      }
+    }
+  }
+  else {
+    boolGiris2 = false;
+  }
+  //readGiris1 = analogRead(giris1);
+  //readGiris2 = analogRead(giris2);
+  readGiris3 = analogRead(giris3);
+  Serial.print(readGiris1);
+  Serial.print("  ");
+  Serial.print(readGiris2);
+  Serial.print("  ");
+  Serial.println(readGiris3);
+  if (readGiris3 > 150) {
+    delay(50);
+    readGiris3 = analogRead(giris3);
+    if (readGiris3 > 150) {
+      delay(50);
+      readGiris3 = analogRead(giris3);
+      if (readGiris3 > 150) {
+        digitalWrite(cixis2, LOW);
+        digitalWrite(cixis, HIGH);
+        delay(8000);
+        digitalWrite(cixis, HIGH);
+        delay(gozle);
+        digitalWrite(cixis, LOW);
+        digitalWrite(cixis2, HIGH);
+        delay(500);
+        digitalWrite(cixis2, LOW);
+        boolGiris3 = true;
+      }
+    }
+  }
+  else {
+    boolGiris3 = false;
+  }
+  delay(250);
+
+}
