@@ -1,0 +1,504 @@
+#include <EEPROM.h>
+unsigned long  counter = 0;
+unsigned int distanc, temp, a2 = 12000, a1 = 182;
+void myclear();
+void myrunning();
+#include <Keyboard.h>
+#include <Keypad.h>
+#include <LiquidCrystal.h>
+LiquidCrystal lcd(12, 13, 10, 9, 8, 7);
+String datalarg = "";
+int dataint = 0, dataint1 = 0;
+long dataint2 = 0 ;
+bool yazmanezaret = false;
+byte cixis0 = 11, cixis1 = 4;
+const byte ROWS = 4; //four rows
+const byte COLS = 4; //four columns
+//define the cymbols on the buttons of the keypads
+char hexaKeys[ROWS][COLS] = {
+  {'1', '2', '3', 'A'},
+  {'4', '5', '6', 'B'},
+  {'7', '8', '9', 'C'},
+  {'*', '0', '#', 'D'}
+};
+byte rowPins[ROWS] = {A0, A1, A2, A3}; //connect to the row pinouts of the keypad
+byte colPins[COLS] = {A4, A5, 5, 6}; //connect to the column pinouts of the keypad
+
+//initialize an instance of class NewKeypad
+Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
+
+void setup() {
+  //Serial.begin(9600);
+  //Serial.println("start");
+  lcd.begin(16, 2);
+  lcd.print("Mesafe=");
+  lcd.setCursor(0, 1);
+  lcd.print("---");
+  delay(500);
+  //lcd.cursor();
+  //lcd.blink();
+  //lcd.noDisplay();
+  //lcd.scrollDisplayRight();
+  pinMode(2, INPUT_PULLUP); // internal pullup input pin 2
+  pinMode(3, INPUT_PULLUP); // internalเป็น pullup input pin 3
+
+  attachInterrupt(0, ai0, RISING);
+  attachInterrupt(1, ai1, RISING);
+  pinMode(cixis0, OUTPUT);
+  pinMode(cixis1, OUTPUT);
+  digitalWrite(cixis1, LOW);
+  digitalWrite(cixis0, LOW);
+  int e0 = EEPROM.read(155);
+  int e1 = EEPROM.read(154);
+  distanc = e0 * 100 + e1;
+  counter = map(distanc, 0, a1, 0, a2);
+  lcd.setCursor(0, 1);
+  lcd.print("Baslangic=");
+  lcd.print(distanc);
+}
+void(* resetFunc) (void) = 0;
+
+void loop() {
+  //delay(5);
+bas:
+
+  if ( distanc != temp ) {
+    lcd.setCursor(0, 1);
+    lcd.print("Baslangic=");
+    lcd.print(distanc);
+    lcd.print("mm");
+    //Serial.println ("distanc");
+    //Serial.println (distanc);
+    //Serial.println (counter);
+    temp = distanc;
+    EEPROM.write( 155, distanc / 100);
+    EEPROM.write( 154, distanc % 100);
+  }
+
+
+  //lcd.print(millis() / 1000);
+  char customKey = customKeypad.getKey();
+  if (customKey) {
+    //Serial.println(customKey);
+    if (customKey == 'A') {
+      myrunning();
+
+    }
+    else if (customKey == 'B') {
+      myclear();
+      if (dataint2 == 0) {
+
+        lcd.setCursor(0, 0);
+        lcd.print("ID-ni yaz= ");
+        while (1) {
+          char customKey = customKeypad.getKey();
+          if (customKey) {
+            if (customKey == 'A') {
+              myrunning();
+              break;
+            }
+            else if (customKey == 'B') {
+
+            }
+            else if (customKey == 'C') {
+              myclear();
+              customKey = "";
+              datalarg = "";
+              dataint2 = 0;
+              break;
+            }
+            else if (customKey == 'D') {
+
+            }
+            else if (customKey == '*') {
+
+            }
+            else if (customKey == '#') {
+              // if (millis() > 5000) {
+              resetFunc();
+              //}
+            }
+            else if (customKey == '0') {
+
+            }
+            else {
+
+              lcd.setCursor(11, 0);
+              lcd.print(customKey);
+              lcd.setCursor(0, 1);
+              lcd.print("Mesafe= ");
+              dataint1 = 0;
+              dataint = 0;
+              dataint2 = 0;
+              dataint =   EEPROM.read((customKey ) * 2);
+              dataint1 =   EEPROM.read((customKey) * 2 + 1);
+              dataint2 = dataint * 100 + dataint1;
+              lcd.setCursor(8, 1);
+              lcd.print("               ");
+              lcd.setCursor(8, 1);
+              lcd.print(dataint2);
+              //        Serial.println(dataint);
+              //      Serial.println(dataint1);
+              //    Serial.println(dataint2);
+              //  Serial.println(customKey);
+
+            }
+          }
+        }
+      }
+
+      else {
+
+        dataint = dataint2 / 100;
+        dataint1 = dataint2 % 100;
+        //Serial.println(dataint);
+        //Serial.println(dataint1);
+        lcd.setCursor(0, 0);
+        lcd.print("ID-ni yaz= ");
+        lcd.setCursor(0, 1);
+        lcd.print("Saxla= ");
+        lcd.print(dataint2);
+
+        while (1) {
+          char customKey = customKeypad.getKey();
+          if (customKey) {
+            if (customKey == 'C') {
+              myclear();
+              yazmanezaret = false;
+              customKey = "";
+              datalarg = "";
+              dataint2 = 0;
+              break;
+            }
+            if (customKey == '#') {
+              //  if (millis() > 5000) {
+              resetFunc();
+              //}
+            }
+            else if (customKey == 'A' or customKey == 'C' or customKey == 'D' or customKey == '*' or customKey == '0' ) {
+
+            }
+            else {
+              //  if (yazmanezaret == false) {
+              //dataint2 = customKey;
+              EEPROM.write((customKey ) * 2, dataint);
+              EEPROM.write((customKey) * 2 + 1, dataint1);
+              myclear();
+              lcd.setCursor(0, 0);
+              lcd.print("Yuklendi");
+              lcd.setCursor(10, 0);
+              lcd.print(customKey);
+              lcd.setCursor(0, 1);
+              lcd.print(dataint2);
+              yazmanezaret = true;
+              //    Serial.println("Yuklendi");
+              delay(500);
+              dataint2 = 0;
+              customKey = "";
+              break;
+              // }
+            }
+          }
+        }
+      }
+    }
+    else if (customKey == 'C') {
+      // lcd.setCursor(5, 1);
+      // dataint=string.toInt(datalarg)
+      myclear();
+      customKey = "";
+      datalarg = "";
+      dataint2 = 0;
+      //Serial.println(dataint2);
+    }
+    else if (customKey == 'D') {
+      myclear();
+      dataint2 = dataint2 / 10;
+      lcd.setCursor(7, 0);
+      if (dataint2 == 0) {
+        lcd.print("");
+        datalarg = "";
+      }
+
+      else {
+        lcd.print(dataint2);
+        lcd.print(" mm");
+        datalarg = (String)dataint2;
+      }
+      //Serial.println(dataint2);
+    }
+    else if (customKey == '*') {
+      lcd.setCursor(0, 1);
+      lcd.print("                           ");
+      lcd.setCursor(0, 1);
+      lcd.print("Acar=");
+      String eeprom_key = "";
+      while (eeprom_key != "1234") {
+        char customKey2 = customKeypad.getKey();
+        if (customKey2) {
+          //  Serial.println(customKey2);
+          if (customKey2 == 'A') {
+
+          }
+          else if (customKey2 == 'B') {
+
+          }
+          else if (customKey2 == 'C') {
+            eeprom_key = "";
+            myclear();
+            goto bas;
+          }
+          else if (customKey2 == 'D') {
+            int index = eeprom_key.length();
+            if (index > 0) {
+              //  eeprom_key.remove(index - 1);
+              int eeprom_int = eeprom_key.toInt();
+              eeprom_int = eeprom_int / 10;
+              if (eeprom_int > 0) {
+                eeprom_key = (String)eeprom_int;
+              }
+              else {
+                eeprom_key = "";
+              }
+
+              //    Serial.println(eeprom_key);
+            }
+            lcd.setCursor(0, 1);
+            lcd.print("             ");
+            lcd.setCursor(0, 1);
+            lcd.print("Acar= ");
+            lcd.print(eeprom_key);
+
+          }
+          else if (customKey2 == '#') {
+            // if (millis() > 5000) {
+            resetFunc();
+            //}
+
+          }
+          else if (customKey2 == '*') {
+
+          }
+          // else if (customKey2 == "") {
+          //}
+          else {
+
+
+            //*
+            if (eeprom_key.length() < 4) {
+              eeprom_key = eeprom_key + customKey2;
+              lcd.setCursor(0, 1);
+              lcd.print("Acar= ");
+              lcd.print(eeprom_key);
+              //  Serial.println(eeprom_key);
+            }
+            //*/
+          }
+        }
+
+      }
+      if (eeprom_key == "1234") {
+        dataint2 = datalarg.toInt();
+        int databir = dataint2 / 100;
+        int dataiki = dataint2 % 100;
+        EEPROM.write(155, databir);
+        EEPROM.write(154, dataiki);
+        //counter = map(dataint2, 0, a1, 0, a2);
+        //Serial.println(dataint2);
+        int e0 = EEPROM.read(155);
+        int e1 = EEPROM.read(154);
+        distanc = e0 * 100 + e1;
+        // distanc = map(distanc,  140, 270, 140, 440);
+        counter = map(distanc, 0, a1, 0, a2);
+
+        //Serial.println("kalibrasiya tamamlandi");
+        // lcd.clear();
+        lcd.setCursor(0, 1);
+        lcd.print("                    ");
+        lcd.setCursor(0, 1);
+        for (int i = 0; i < 16; i++) {
+          lcd.print(".");
+          delay(100);
+        }
+
+        dataint2 = 0;
+        datalarg = "";
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Mesafe=");
+      }
+
+    }
+    else if (customKey == '#') {
+      //if (millis() > 5000) {
+      resetFunc();
+      //}
+    }
+    else {
+      lcd.setCursor(0, 0);
+      lcd.print("Mesafe=");
+      lcd.setCursor(7, 0);
+      datalarg = datalarg + customKey;
+      int stringlong = datalarg.length();
+      if (stringlong > 4) {
+        lcd.setCursor(0, 1);
+        lcd.print("limitdedir");
+      }
+      else {
+        lcd.print(datalarg);
+        lcd.print(" mm");
+
+        dataint2 = datalarg.toInt();
+        //Serial.println(dataint2);
+      }
+
+    }
+  }
+}
+void myclear() {
+
+  for (int k = 0; k < 2; k++) {
+    for (int i = 0; i < 16; i++) {
+      lcd.setCursor(i, k);
+      lcd.print(" ");
+    }
+  }
+  lcd.setCursor(0, 0);
+  lcd.print("Mesafe= ");
+  dataint = 0;
+  datalarg = "";
+}
+void myrunning() {
+  temp = counter;
+  if (dataint2 != 0) {
+    //Serial.print("running...  ");
+    //Serial.println(dataint2);
+
+  }
+  for (int k = 0; k < 2; k++) {
+    for (int i = 0; i < 16; i++) {
+      lcd.setCursor(i, k);
+      lcd.print(" ");
+    }
+  }
+  lcd.setCursor(0, 0);
+  lcd.print("Isleyir... ");
+  lcd.print(dataint2);
+  lcd.setCursor(11, 1);
+  lcd.print("");
+  lcd.print(distanc);
+
+  do {
+    while (dataint2 > distanc + 2 ) {
+      digitalWrite(cixis0, HIGH);
+      digitalWrite(cixis1, LOW);
+
+      if ( counter != temp ) {
+        //  Serial.print (distanc);
+        //Serial.print("     ");
+        // Serial.println(dataint2);
+        lcd.setCursor(11, 1);
+        lcd.print(distanc);
+        temp = counter;
+      }
+      char customKey = customKeypad.getKey();
+      if (customKey) {
+
+        if (customKey == '#') {
+          //  if (millis() > 5000) {
+          digitalWrite(cixis1, LOW);
+          digitalWrite(cixis0, LOW);
+          delay(250);
+          EEPROM.write( 155, distanc / 100);
+          EEPROM.write( 154, distanc % 100);
+          resetFunc();
+          //}
+        }
+      }
+    }
+    //digitalWrite(cixis1, LOW);
+    //digitalWrite(cixis0, LOW);
+    while (dataint2 < distanc - 2 ) {
+      digitalWrite(cixis1, HIGH);
+      digitalWrite(cixis0, LOW);
+      if ( counter != temp ) {
+        //Serial.print (distanc);
+        //Serial.print("     ");
+        //Serial.println(dataint2);
+        temp = counter;
+        lcd.setCursor(11, 1);
+        lcd.print(distanc);
+      }
+      char customKey = customKeypad.getKey();
+      if (customKey) {
+
+        if (customKey == '#') {
+          //  if (millis() > 5000) {
+
+          digitalWrite(cixis1, LOW);
+          digitalWrite(cixis0, LOW);
+          delay(250);
+          EEPROM.write( 155, distanc / 100);
+          EEPROM.write( 154, distanc % 100);
+          resetFunc();
+          //}
+        }
+      }
+
+    }
+
+
+  } while (dataint2 < distanc - 2 and dataint2 > distanc + 2 );
+  //Serial.print (distanc);
+  //Serial.print("     ");
+  //Serial.println(dataint2);
+  digitalWrite(cixis1, LOW);
+  digitalWrite(cixis0, LOW);
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Catdi= ");
+  lcd.print(distanc);
+
+  lcd.setCursor(0, 1);
+  lcd.print("            ");
+  lcd.setCursor(0, 1);
+  for (int i = 0; i < 16; i++) {
+    delay(200);
+    lcd.print(".");
+  }
+  //Serial.println("loop");
+
+  EEPROM.write( 155, distanc / 100);
+  EEPROM.write( 154, distanc % 100);
+  delay(200);
+  dataint2 = 0;
+  myclear();
+}
+void ai0() {
+  // ai0 is activated if DigitalPin nr 2 is going from LOW to HIGH
+  // Check pin 3 to determine the direction
+  if (digitalRead(3) == LOW) {
+    counter++;
+    distanc = map(counter, 0, a2, 0, a1);
+    // distanc = map(distanc, 140, 440, 140, 270);
+  } else {
+    counter--;
+    distanc = map(counter, 0, a2, 0, a1);
+    // distanc = map(distanc, 140, 440, 140, 270);
+  }
+}
+
+void ai1() {
+  // ai0 is activated if DigitalPin nr 3 is going from LOW to HIGH
+  // Check with pin 2 to determine the direction
+  if (digitalRead(2) == LOW) {
+    counter--;
+    distanc = map(counter, 0, a2, 0, a1);
+    //distanc = map(distanc, 140, 440, 140, 270);
+  } else {
+    counter++;
+    distanc = map(counter, 0, a2, 0, a1);
+    //++  distanc = map(distanc, 140, 440, 140, 270);
+  }
+}
+
