@@ -1,0 +1,178 @@
+int deyer();
+int deyer2();
+void ayarlanma();
+void sensor_siqnal_1(int sensor_siqnal);
+void old_date_e();
+void old_date_blink();
+void sleep_time();
+void one_secand();
+void old_sleep();
+int old_nezaret[50], sleep_nezaret[40];// old_ferq[50], sleep_ferq[40],
+int old_araliq1 = 10, old_araliq2 = 100;
+long hesab_interval = 0, sleep_interval = 0;
+int goz = 7,goz2=6;
+int cevrici = 0,cevrici2 = 0, murguleme = 0, murguleme2 = 0, ferq = 0, ferq2 = 0, saygac_ferq = 0, hesabat = 0,  cem = 0;
+byte a = 0, c = 0, old_say = 0;
+unsigned long old_timer = 0;
+int k = 150, kmax = 950;
+//-------------------------------------------------------------------------------------------------------
+void setup() {
+  //Bluetooth
+  Serial.begin(115200);
+  pinMode(3, OUTPUT);
+  digitalWrite(3, LOW);
+  //--------------------------------------------------------------------
+}
+void loop() {
+  cevrici = deyer();
+  cevrici2 = deyer2();
+  Serial.print(" Line1 >>  ");
+  Serial.println(cevrici);
+  Serial.print(" Line2 >>  ");
+  Serial.println(cevrici2);
+  if (cevrici > k and cevrici < kmax)
+  {
+    for (int i = 0; i < 400; i++) {
+      cevrici = deyer();
+      old_date_e();
+      delay(5);
+    }
+    Serial.println("===============================>>>>>>>>>>>>>>>>>>> Sazlandi <<<<<<<<<<<<<<<<<");
+    old_timer = millis();
+    while (1) {
+      cevrici = deyer();
+      if (cevrici <= k or cevrici >= kmax) {
+        break;
+      }
+      old_date_blink();
+    }
+  }
+
+  delay(200);
+}
+//===============================================================================================================
+
+int deyer() {
+  int deyer_ilk = analogRead(goz);
+  long deyer_cem = 0;
+  int deyer_netice = 0;
+  for (int i = 0; i < 100; i++) {
+    deyer_cem += deyer_ilk;
+    delayMicroseconds(5);
+  }
+  deyer_netice = deyer_cem / 100;
+  return deyer_netice;
+}
+//=======================================================================================================================================================
+int deyer2() {
+  int deyer_ilk2 = analogRead(goz2);
+  long deyer_cem2 = 0;
+  int deyer_netice2 = 0;
+  for (int i = 0; i < 100; i++) {
+    deyer_cem2 += deyer_ilk2;
+    delayMicroseconds(5);
+  }
+  deyer_netice2 = deyer_cem2 / 100;
+  return deyer_netice2;
+}
+//=======================================================================================================================================================
+void old_date_e() {
+  for (int i = 49; i > 0; i--) {
+    old_nezaret[i] = old_nezaret[i - 1];
+  }
+  old_nezaret[0] = cevrici;
+}
+//===================================================================================================================================================
+void old_date_blink() {
+  if (old_nezaret[0] < cevrici - 5 and old_nezaret[1] < cevrici - 8 and old_nezaret[2] < cevrici - 10 and old_nezaret[3] < cevrici - 12) {
+    Serial.print("  IFF   >>>  cevrici=  ");
+    Serial.print(cevrici);
+    Serial.print("  nezaret 0=  ");
+    Serial.print(old_nezaret[0]);
+    Serial.print("  nezaret 1=  ");
+    Serial.print(old_nezaret[1]);
+    Serial.print("  nezaret 2=  ");
+    Serial.print(old_nezaret[2]);
+    Serial.print("  nezaret 3=  ");
+    Serial.print(old_nezaret[3]);
+    delay(20);
+    old_timer = millis();
+    for (int i = 4; i < 50; i++) {
+      hesab_interval += old_nezaret[i];
+    }
+    hesab_interval /= 46;
+    old_sleep();
+    while (cevrici > hesab_interval + 10 and cevrici < hesab_interval + 200) {
+      cevrici = deyer();
+      Serial.print("  Cevrici=  ");
+      Serial.print(cevrici);
+      Serial.print("  Interval= ");
+      Serial.print(hesab_interval);
+      if (millis() - old_timer > 800 and millis() - old_timer < 2000 ) {
+        sleep_interval = 0;
+        for (int i = 4; i < 40; i++) {
+          sleep_interval += sleep_nezaret[i];
+          //old_sleep();
+        }
+        sleep_interval /= 36;
+        one_secand();
+        Serial.println("    >>>> Murguleme <<<");
+      }
+      else  if (millis() - old_timer > 2000) {
+        Serial.print(" <<<<<<<<<<<<  Yatti >>>>>>>>> ");
+        Serial.print("Timer=  ");
+        Serial.println(millis() - old_timer);
+        digitalWrite(3, HIGH);
+        one_secand();
+      }
+      else {
+        sleep_time();
+        Serial.println("    >>>> Murguleme <<<");
+      }
+      delay(20);
+    }
+    if (millis() - old_timer > 100) {
+      old_date_e();
+    }
+    hesab_interval = 0;
+    digitalWrite(3, LOW);
+    Serial.print("  Timer=  ");
+    Serial.print(millis() - old_timer);
+  }
+  else {
+    old_date_e();
+    delay(20);
+    old_timer = millis();
+    cevrici = deyer();
+    Serial.print("  Cevrici=  ");
+    Serial.print(cevrici);
+    Serial.println("  Neytral  ");
+  }
+  Serial.print("  Cevrici=  ");
+  Serial.print(cevrici);
+  Serial.println("  Neytral  ");
+}
+//=========================================================================
+void one_secand() {
+  cevrici = deyer();
+  Serial.print("  SleepInterval =  ");
+  Serial.print(sleep_interval);
+  if (cevrici < sleep_interval - 40 or cevrici > sleep_interval + 40) {
+    hesab_interval = cevrici;
+    Serial.print(" <<<<<<<<<<<<<<<<<<< Ekivalent>>>>>>>>>>>>>>>>>>>>> ");
+  }
+}
+//========================================================================
+void sleep_time() {
+  for (int i = 39; i > 0; i--) {
+    sleep_nezaret[i] = sleep_nezaret[i - 1];
+  }
+  sleep_nezaret[0] = cevrici;
+}
+//=========================================================================
+void old_sleep() {
+  for (int i = 0; i < 40; i++ ) {
+    sleep_nezaret[i] = old_nezaret[i];
+  }
+}
+
