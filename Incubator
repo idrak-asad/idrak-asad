@@ -1,0 +1,912 @@
+//#include <watchdogHandler.h>
+//#include <avr/wdt.h>
+#include <EEPROM.h>
+
+// Date and time functions using just software, based on millis() & timer
+
+#include <Arduino.h>
+#include <Wire.h>         // this #include still required because the RTClib depends on it
+#include "RTClib.h"
+
+#if defined(ARDUINO_ARCH_SAMD)
+// for Zero, output on USB Serial console, remove line below if using programming port to program the Zero!
+#define Serial SerialUSB
+#endif
+
+RTC_DS1307 rtc;
+#include <LiquidCrystal.h>
+
+// initialize the library by associating any needed LCD interface pin
+// with the arduino pin number it is connected to
+const int rs = 9, en = 8, d4 = 7, d5 = 6, d6 = 5, d7 = 4;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+//#include <Adafruit_Sensor.h>
+#include <DHT.h>
+//#include <DHT_U.h>
+#define DHTPIN 2     // what digital pin we're connected to
+
+// Uncomment whatever type you're using!
+//#define DHTTYPE DHT11   // DHT 11
+#define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
+
+DHT dht(DHTPIN, DHTTYPE);
+uint32_t delayMS;
+bool click_now [3][2];
+byte menu = A6;
+byte down = A7;
+byte geri = A3;
+bool menubool = false;
+int saygac = 0, saygac_m_limit;
+byte kursor = 0, cevtarix = 0, kursor_help = 0;
+unsigned int temmax_kesir = 0, temmin_kesir = 0, temmax = 0, temmin = 0;
+unsigned int rutmin = 0, rutmax = 0, rutmax_kesir = 0, rutmin_kesir = 0;
+float rutmax_float, rutmin_float, temmax_float, temmin_float;
+float rut_float, tem_float;
+int  deq_c;
+
+int gun_rom ;
+int saat_rom ;
+int son_cevirme, gun ;
+bool dht_data = true;
+bool error2_bool = false;
+
+void moveMenu();
+void Desktop();
+void Bootton();
+void geri_f();
+void cevirme_f();
+void cevirme_f_sub();
+void temp_f();
+void rut_f();
+void baslat_f();
+void baslat_f_sub();
+void click_menu();
+void click_down();
+void click_geri();
+void temp_f_sub();
+void rut_f_sub();
+void Error();
+void Cevirme();
+
+bool menuSaygacBool = false;
+byte lampa = 12;
+byte buzzer = 3;
+byte rutubet = 11;
+byte donme = 0;
+bool cevir = false;
+bool first_desk = true;
+byte menu_saygac = 0;
+bool bool_up = false;
+int donme_time = 1000;
+int donme_saygac = 0;
+int donme_saygac_limit = 20;
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+void setup () {
+  //wdt_enable(WDTO_8S);
+  //  DDRB &=0x1C;
+  //DDRD &=0x8;
+ // PORTB &=0x1C;
+  //Serial.begin(9600);
+  //Serial.println("A1");
+  //Serial.println("1");
+  lcd.begin(20, 4);
+  //Serial.println("2");
+  // following line sets the RTC to the date & time this sketch was compiled
+  //Serial.println("3");
+  rtc.begin();
+  //Serial.println("4");
+  //*
+  if (! rtc.isrunning()) {
+    //Serial.println("RTC is NOT running!");
+    // following line sets the RTC to the date & time this sketch was compiled
+    rtc.adjust(DateTime(__DATE__, __TIME__));
+  }
+  //*/
+  // This line sets the RTC with an explicit date & time, for example to set
+  // January 21, 2014 at 3am you would call:
+  // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
+  ///Serial.println("5");
+  dht.begin();
+  //Serial.println("6");
+  pinMode(menu, INPUT);
+  pinMode(down, INPUT);
+  pinMode(geri, INPUT);
+  pinMode(lampa, OUTPUT);
+  pinMode(buzzer, OUTPUT);
+  pinMode(rutubet, OUTPUT);
+  pinMode(donme, OUTPUT);
+
+  digitalWrite(lampa, HIGH);
+  digitalWrite(rutubet, HIGH);
+  digitalWrite(donme, HIGH);
+  Serial.println("1");
+/*
+  EEPROM.write(1,50);
+  EEPROM.write(2,50);
+  EEPROM.write(3,50);
+  EEPROM.write(4,50);
+  EEPROM.write(5,50);
+  EEPROM.write(6,50);
+  EEPROM.write(7,50);
+  EEPROM.write(8,50);
+  //*/
+  
+
+}
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+void loop () {
+  
+  Bootton();
+  if (menu_saygac == 0) {
+    Desktop();
+  }
+  else if (menu_saygac == 1) {
+    first_desk = true;
+    saygac_m_limit++;
+  }
+  else {
+    saygac_m_limit++;
+  }
+
+  if (saygac_m_limit > 1500) {
+    menu_saygac = 0;
+    saygac_m_limit = 0;
+    kursor = 0;
+  }
+
+  delay(1);
+}
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+void Bootton() {
+  click_now[0] [1] = click_now[0] [0];
+  click_now[1] [1] = click_now[1] [0];
+  click_now[2] [1] = click_now[2] [0];
+  //click_now[0] [0] = digitalRead(menu);
+  int a6 = analogRead(menu);
+  //Serial.print("a6 = ");
+  //Serial.println(a6);
+  if (a6 > 500) {
+    click_now[0][0] = HIGH;
+  }
+  else {
+    click_now[0][0] = LOW;
+  }
+  if (click_now[0] [0] == HIGH) {
+    //Serial.println(" menu HIGH");
+  }
+  else {
+    //Serial.println(" menu LOW");
+  }
+  int a7 = analogRead(down);
+  //Serial.print("a7 = ");
+  //Serial.println(a7);
+  if (a7 > 500) {
+    click_now[1][0] = HIGH;
+  }
+  else {
+    click_now[1][0] = LOW;
+  }
+  //click_now[1] [0] = digitalRead(down);
+  click_now[2] [0] = digitalRead(geri);
+  
+  if (click_now[0] [0] == HIGH and menu_saygac == 0) {
+    menuSaygacBool = true;
+    saygac_m_limit = 0;
+    delay(300);
+    menu_saygac++;
+    if (menu_saygac == 2) {
+      kursor_help = kursor;
+
+    }
+    //Serial.println("click_menu");
+    click_menu();
+  }
+
+  else if (click_now[0] [1] == HIGH and click_now[0] [0] == LOW ) {
+    if (menuSaygacBool == true) {
+      menuSaygacBool = false;
+    }
+    else {
+      menuSaygacBool = false;
+      saygac_m_limit = 0;
+      delay(300);
+      menu_saygac++;
+      if (menu_saygac == 2) {
+        kursor_help = kursor;
+
+      }
+      //Serial.println("click_menu");
+      click_menu();
+    }
+
+  }
+
+  else if (click_now[1] [1] == HIGH and click_now[1] [0] == LOW) {
+    click_down();
+    saygac_m_limit = 0;
+  }
+  else if (click_now[2] [1] == HIGH and click_now[2] [0] == LOW) {
+    click_geri();
+    saygac_m_limit = 0;
+  }
+  delay(20);
+}
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+void click_menu() {
+  //Serial.println("click menu");
+
+
+  if (menu_saygac == 1) {
+    moveMenu();
+  }
+  else if (menu_saygac == 2) {
+    // kursor_help = kursor;
+    if (kursor_help == 0) {
+      cevtarix = EEPROM.read(0);
+      cevirme_f();
+      //menu_saygac = 1;
+    }
+    else if (kursor_help == 1) {
+      temmax = EEPROM.read(1);
+      temmin = EEPROM.read(2);
+      temmax_kesir = EEPROM.read(3);
+      temmin_kesir = EEPROM.read(4);
+      //Serial.print("temmax ");
+      //Serial.print(temmax);
+      //Serial.print(" temmax_kesir ");
+      //Serial.print(temmax_kesir);
+      //Serial.print("temin ");
+      //Serial.print(temmin);
+      //Serial.print(" temmin_kesir ");
+      //Serial.println(temmin_kesir);
+      temmax_float = temmax_kesir % 10 * 0.1;
+      temmax_float =   temmax + temmax_float;
+      temmin_float = temmin_kesir % 10 * 0.1;
+      temmin_float =   temmin + temmin_float;
+
+      temp_f();
+    }
+    else if (kursor_help == 2) {
+      rutmax = EEPROM.read(5);
+      rutmin = EEPROM.read(6);
+      rutmax_kesir = EEPROM.read(7);
+      rutmin_kesir = EEPROM.read(8);
+      //Serial.print("rutmax ");
+      //Serial.print(rutmax);
+      //Serial.print(" rutmax_kesir ");
+      //Serial.print(rutmax_kesir);
+      //Serial.print("  rutmin ");
+      //Serial.print(rutmin);
+      //Serial.print(" rutmin_kesir ");
+      //Serial.println(rutmin_kesir);
+      rutmax_float = rutmax_kesir % 10 * 0.1;
+      rutmax_float =   rutmax + rutmax_float;
+      rutmin_float = rutmin_kesir % 10 * 0.1;
+      rutmin_float =   rutmin + rutmin_float;
+      //Serial.print("  rutmin_float ");
+      //Serial.print(rutmax_float);
+      //Serial.print(" rutmin_float ");
+      //Serial.println(rutmin_float);
+      rut_f();
+    }
+    else if (kursor_help == 3) {
+      baslat_f();
+    }
+    else if (kursor_help == 4) {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Ekran yuklenir...");
+      geri_f();
+    }
+  }
+  else if (menu_saygac == 3) {
+    if (kursor_help == 0) {
+      EEPROM.write(0, cevtarix);
+      menu_saygac = 1;
+      moveMenu();
+      //cevirme_f();
+    }
+    else if (kursor_help == 1) {
+
+      temp_f_sub();
+      //menu_saygac++;
+    }
+    else if (kursor_help == 2) {
+      // menu_saygac++;
+      rut_f_sub();
+    }
+    else if (kursor_help == 3) {
+      baslat_f();
+    }
+    else if (kursor_help == 4) {
+
+      menu_saygac = 1;
+      geri_f();
+    }
+
+    kursor = 0;
+
+  }
+  else if (menu_saygac == 4) {
+    if (kursor_help == 1) {
+      if (temmax_float < temmin_float) {
+        Error();
+      }
+      else {
+        temmax = temmax_float * 100 / 100;
+        //Serial.print("tem ");
+        //Serial.print(temmax);
+        temmax_float = temmax_float * 10.0;
+        temmax_kesir = (int) temmax_float;
+        temmax_kesir %= 10;
+        //Serial.print(" kesir ");
+        //Serial.println(temmax_kesir);
+        EEPROM.write( 1, temmax);
+        EEPROM.write( 3, temmax_kesir);
+
+        temmin = (int)temmin_float;
+        //Serial.print("tem ");
+        //Serial.println(temmin);
+        temmin_float = temmin_float * 10.0;
+        temmin_kesir = (int) temmin_float;
+        temmin_kesir %= 10;
+        //Serial.print("kesir ");
+        //Serial.println(temmin_kesir);
+        EEPROM.write( 2, temmin);
+        EEPROM.write(4, temmin_kesir);
+        //temp_f_sub();
+        menu_saygac = 1;
+        moveMenu();
+      }
+
+    }
+    else if (kursor_help == 2) {
+      if (rutmax_float < rutmin_float) {
+        Error();
+      }
+      else {
+        //Serial.print("rutmax_float ");
+        //Serial.print(rutmax_float);
+        //Serial.print("  rutmin_float ");
+        //Serial.print(rutmin_float);
+        rutmax = (int)rutmax_float;
+        //Serial.print("  rutma ");
+        //Serial.print(rutmax);
+
+        rutmax_float = rutmax_float * 10.0;
+        //Serial.print("  rutma_float2 ");
+        //Serial.print(rutmax_float);
+        rutmax_kesir =  rutmax_float;
+        rutmax_kesir++;
+        //Serial.print("  rutmax_kesir ");
+        //Serial.print(rutmax_kesir);
+
+        rutmax_kesir %= 10;
+        //Serial.print(" kesir ");
+        //Serial.println(rutmax_kesir);
+        EEPROM.write( 5, rutmax);
+        EEPROM.write( 7, rutmax_kesir);
+
+        rutmin = (int)rutmin_float;
+        //Serial.print("rutmin ");
+        //Serial.print (rutmin);
+        rutmin_float = rutmin_float * 10.0;
+        rutmin_kesir = (int) rutmin_float;
+        rutmin_kesir++;
+        rutmin_kesir %= 10;
+        //Serial.print("kesir ");
+        //Serial.println(rutmin_kesir);
+        EEPROM.write( 6, rutmin);
+        EEPROM.write(8, rutmin_kesir);
+        menu_saygac = 1;
+        moveMenu();
+      }
+
+    }
+    else if (kursor_help == 3) {
+      // lcd.clear();
+      // lcd.setCursor(0,0);
+      // lcd.print("Ekran yuklenir...");
+      menu_saygac = 1;
+      moveMenu();
+    }
+  }
+  //Serial.print("menu ");
+  //Serial.println(menu_saygac);
+}
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+void click_down() {
+  //Serial.println("click Down");
+
+  if (menu_saygac == 1) {
+    kursor++;
+    if (kursor > 4) {
+      kursor = 0;
+    }
+    moveMenu();
+
+  }
+  else if (menu_saygac == 2) {
+    if (kursor_help == 0) {
+      if (cevtarix > 0) {
+        cevtarix--;
+        cevirme_f_sub();
+      }
+
+    }
+    else if (kursor_help == 1) {
+      if (temmax_float > 5.10) {
+        temmax_float = temmax_float - 0.10;
+        temp_f_sub();
+      }
+
+    }
+    else if (kursor_help == 2) {
+      if (rutmax_float > 5.10) {
+        rutmax_float = rutmax_float - 0.10;
+        rut_f_sub();
+      }
+    }
+  }
+  else if (menu_saygac == 3) {
+    if (kursor_help == 1) {
+      if (temmin_float > 5.00) {
+        temmin_float = temmin_float - 0.10;
+        temp_f_sub();
+      }
+
+    }
+    else if (kursor_help == 2) {
+      if (rutmin_float > 10.00) {
+        rutmin_float = rutmin_float - 0.10;
+        rut_f_sub();
+      }
+    }
+  }
+}
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+void click_geri() {
+  //Serial.println("click geri");
+  if (menu_saygac == 1) {
+    kursor--;
+    if (kursor > 10) {
+      kursor = 4;
+    }
+    bool_up = true;
+    moveMenu();
+    bool_up = false;
+  }
+  else if (menu_saygac == 2) {
+    if (kursor_help == 0) {
+      if (cevtarix < 254) {
+        cevtarix++;
+        cevirme_f_sub();
+      }
+    }
+    else if (kursor_help == 1) {
+      if (temmax_float < 50) {
+        temmax_float = temmax_float + 0.10;
+        temp_f_sub();
+      }
+    }
+    else if (kursor_help == 2) {
+      if (rutmax_float < 100.00) {
+        rutmax_float = rutmax_float + 0.10;
+        rut_f_sub();
+      }
+    }
+  }
+  else if (menu_saygac == 3) {
+    if (kursor_help == 1) {
+      if (temmin_float < 50.00) {
+        temmin_float = temmin_float + 0.10;
+        temp_f_sub();
+      }
+
+    }
+    else if (kursor_help == 2) {
+      if (rutmin_float < 100.00) {
+        rutmin_float = rutmin_float + 0.10;
+        rut_f_sub();
+      }
+    }
+  }
+}
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+void(*resetFunc)(void)=0;
+
+//+++++++++++++++++++++++++++++++++++++++++++++
+void Desktop() {
+
+  if  (first_desk == true) {
+    first_desk = false;
+    temmax = EEPROM.read(1);
+    temmin = EEPROM.read(2);
+    temmax_kesir = EEPROM.read(3);
+    temmin_kesir = EEPROM.read(4);
+    //Serial.print("temmax ");
+    //Serial.print(temmax);
+    //Serial.print(" temmax_kesir ");
+    //Serial.print(temmax_kesir);
+    //Serial.print("temin ");
+    //Serial.print(temmin);
+    //Serial.print(" temmin_kesir ");
+    //Serial.println(temmin_kesir);
+    temmax_float = temmax_kesir % 10 * 0.1;
+    temmax_float =   temmax + temmax_float;
+    temmin_float = temmin_kesir % 10 * 0.1;
+    temmin_float =   temmin + temmin_float;
+    //Serial.print("temmax_float ");
+    //Serial.print(temmax_float);
+    //Serial.print(" temmin_float ");
+    //Serial.println(temmin_float);
+    rutmax = EEPROM.read(5);
+    rutmin = EEPROM.read(6);
+    rutmax_kesir = EEPROM.read(7);
+    rutmin_kesir = EEPROM.read(8);
+    //Serial.print("rutmax ");
+    //Serial.print(rutmax);
+    //Serial.print(" rutmax_kesir ");
+    //Serial.print(rutmax_kesir);
+    //Serial.print("  rutmin ");
+    //Serial.print(rutmin);
+    //Serial.print(" rutmin_kesir ");
+    //Serial.println(rutmin_kesir);
+    rutmax_float = rutmax_kesir % 10 * 0.1;
+    rutmax_float =   rutmax + rutmax_float;
+    rutmin_float = rutmin_kesir % 10 * 0.1;
+    rutmin_float =   rutmin + rutmin_float;
+    //Serial.print("  rutmin_float ");
+    //Serial.print(rutmax_float);
+    //Serial.print(" rutmin_float ");
+    //Serial.println(rutmin_float);
+  }
+
+//dht_main:
+  float h = dht.readHumidity();
+  // Read temperature as Celsius (the default)
+  float t = dht.readTemperature();
+  // Read temperature as Fahrenheit (isFahrenheit = true)
+  float f = dht.readTemperature(true);
+  //Serial.println(h);
+  // Check if any reads failed and exit early (to try again).
+  //int dht_data=true;
+  if (isnan(h) || isnan(t) || isnan(f)) {
+
+    //Serial.println("Failed to read from DHT sensor!");
+    if (error2_bool == false) {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("ERROR 2" );
+      // for (int i = 0; i > -32; i++) {
+      lcd.setCursor(0, 2);
+      lcd.print("Temperatur ve ya" );
+      lcd.setCursor(0, 3);
+      lcd.print("rutubet oxunmur" );
+      //delay(100);
+      //}
+      dht_data = false;
+      digitalWrite(buzzer, HIGH);
+      delay(2000);
+      digitalWrite(buzzer, LOW);
+    }
+    error2_bool = true;
+    
+    //delay(2000);
+    //return;
+resetFunc();
+  }
+  else {
+    error2_bool = false;
+  }
+  Cevirme();
+  DateTime now = rtc.now();
+  int gun_now = now.day();
+  int saat_now = now.hour();
+  int deq_now = now.minute();
+
+  //int tMax = EEPROM.read(1);
+  //int tMin = EEPROM.read(3);
+
+  if (rut_float != h or tem_float != t or deq_c != deq_now or dht_data == false) {
+    dht_data = true;
+    rut_float = h;
+    tem_float = t;
+    deq_c = deq_now;
+    gun = EEPROM.read(14);
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Gun: " );
+    lcd.print(gun);
+    lcd.print("      " );
+    lcd.setCursor(0, 1);
+    lcd.print("Tempratur: " );
+    lcd.print(t);
+    lcd.print("    " );
+    lcd.setCursor(0, 2);
+    lcd.print("Rutubet: " );
+    lcd.print(h);
+    lcd.print("      " );
+    lcd.setCursor(0, 3);
+    lcd.print(gun_now);
+    lcd.print(" / ");
+    lcd.print(saat_now);
+    lcd.print(" / ");
+    lcd.print(deq_now);
+    lcd.print("  ");
+  }
+}
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+void moveMenu() {
+  //Serial.println(kursor);
+  byte line = 0;
+  String ox[5];
+  ox[kursor] = ">";
+  if (kursor)
+    if (kursor >= 3 or (kursor >= 2 and bool_up == true ) ) {
+      line = -1;
+    }
+
+  lcd.clear();
+
+  if (line == 0) {
+    lcd.setCursor(0, 0);
+    lcd.print(ox[0]);
+    lcd.print("Son cevrilme vaxti");
+  }
+  else {
+    lcd.setCursor(0, 3);
+    lcd.print(ox[4]);
+    lcd.print("Geri");
+  }
+
+  lcd.setCursor(0, line + 1);
+  lcd.print(ox[1]);
+  lcd.print("Tempratur ");
+  lcd.setCursor(0, line + 2);
+  lcd.print(ox[2]);
+  lcd.print("Rutubetlilik");
+  lcd.setCursor(0, line + 3);
+  lcd.print(ox[3]);
+  lcd.print("Baslat");
+}
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+void geri_f() {
+  menu_saygac = 0;
+  kursor = 0;
+  Desktop();
+
+}
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+void cevirme_f() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Son cevrilme vaxti");
+  lcd.setCursor(0, 1);
+  lcd.print("Kohne= ");
+  lcd.print(cevtarix);
+  cevirme_f_sub();
+}
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+void cevirme_f_sub() {
+  lcd.setCursor(0, 2);
+  lcd.print("                  ");
+  lcd.setCursor(0, 2);
+  lcd.print("yeni= ");
+  lcd.print(cevtarix);
+}
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+void temp_f() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("  Tempratur");
+
+  lcd.setCursor(0, 1);
+  lcd.print("Max=");
+  lcd.print(temmax_float);
+  lcd.print(" Min=");
+  lcd.print(temmin_float);
+  lcd.setCursor(0, 2);
+  lcd.print("Deyis");
+  temp_f_sub();
+}
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+void temp_f_sub() {
+  lcd.setCursor(0, 3);
+  lcd.print("                  ");
+  lcd.setCursor(0, 3);
+  lcd.print("Max=");
+  lcd.print(temmax_float);
+  lcd.print(" Min=");
+  lcd.print(temmin_float);
+}
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++
+void rut_f() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("  Rutubet");
+
+  lcd.setCursor(0, 1);
+  lcd.print("Max=");
+  lcd.print(rutmax_float);
+  lcd.print(" Min=");
+  lcd.print(rutmin_float);
+  lcd.setCursor(0, 2);
+  lcd.print("Deyis");
+  rut_f_sub();
+}
+void rut_f_sub() {
+  lcd.setCursor(0, 3);
+  lcd.print("                  ");
+  lcd.setCursor(0, 3);
+  lcd.print("Max=");
+  lcd.print(rutmax_float);
+  lcd.print(" Min=");
+  lcd.print(rutmin_float);
+
+}
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+void baslat_f() {
+  kursor = 0;
+  menu_saygac = 0;
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Qurgu ise salinir");
+  DateTime now = rtc.now();
+  EEPROM.write(9, now.hour());
+  EEPROM.write(10, now.day());
+  //EEPROM.write(11, now.month());
+  //EEPROM.write(12, now.year() % 100);
+  EEPROM.write(13, now.minute());
+  EEPROM.write(14, 0);
+  EEPROM.write(15, now.hour());
+  lcd.setCursor(0, 1);
+  for (int i = 0; i < 20; i++) {
+    lcd.print(".");
+    delay(100);
+  }
+  delay(100);
+  Desktop();
+}
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+void Error() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("       ERROR");
+  lcd.setCursor(0, 1);
+  lcd.print("Max Min-den kicikdir");
+  delay(2000);
+  menu_saygac = 2;
+  click_menu();
+}
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+void Cevirme() {
+  float h = dht.readHumidity();
+  // Read temperature as Celsius (the default)
+  float t = dht.readTemperature();
+  // Read temperature as Fahrenheit (isFahrenheit = true)
+  float f = dht.readTemperature(true);
+  //Serial.println(h);
+  // Check if any reads failed and exit early (to try again).
+  if (isnan(h) || isnan(t) || isnan(f)) {
+    //Serial.println("Failed to read from DHT sensor!");
+    // return;
+  }
+  unsigned long now_data, eeprom_data;
+  DateTime now = rtc.now();
+  // int il_now = now.year();
+  // int ay_now = now.month();
+  int gun_now = now.day();
+  int saat_now = now.hour();
+  int deq_now = now.minute();
+  //Serial.println(il_now);
+  //Serial.println(ay_now);
+  //int eeprom_il = EEPROM.read(12);
+  //int eeprom_ay = EEPROM.read(11);
+  int eeprom_gun = EEPROM.read(10);
+  int eeprom_saat = EEPROM.read(9);
+  int eeprom_deq = EEPROM.read(13);
+
+  now_data = saat_now * 60 + deq_now;
+  eeprom_data = eeprom_saat * 60 + eeprom_deq;
+  int ferq = 1440 - eeprom_data;
+  int son_cevirme_gunu;
+  if (eeprom_gun< gun_now or eeprom_gun>gun_now) {
+    int cevirme_saati = EEPROM.read(15);
+    if (cevirme_saati > saat_now - 1 and cevirme_saati < saat_now + 1) {
+      EEPROM.write(10, gun_now);
+      son_cevirme_gunu = EEPROM.read(14);
+      son_cevirme_gunu++;
+      EEPROM.write(14, son_cevirme_gunu);
+    }
+
+  }
+  son_cevirme_gunu = EEPROM.read(14);
+  int son_cevirme = EEPROM.read(0);
+  if (son_cevirme <= son_cevirme_gunu) {
+
+  }
+  else {
+    if (now_data > eeprom_data) {
+      if (now_data - eeprom_data > 120 and donme_saygac == 0) {
+        EEPROM.write(9, saat_now);
+        EEPROM.write(13, deq_now);
+        digitalWrite(donme, LOW);
+        delay(donme_time);
+        //digitalWrite(donme, HIGH);
+        donme_saygac++;
+      }
+    }
+    else {
+      if (now_data - ferq > 120 and donme_saygac == 0) {
+        EEPROM.write(9, saat_now);
+        EEPROM.write(13, deq_now);
+        digitalWrite(donme, LOW);
+        delay(donme_time);
+        //digitalWrite(donme, HIGH);
+        donme_saygac++;
+      }
+    }
+    if (donme_saygac > 0 and donme_saygac < donme_saygac_limit) {
+      donme_saygac++;
+      delay(donme_time);
+    }
+    if (donme_saygac >= donme_saygac_limit) {
+      donme_saygac = 0;
+      digitalWrite(donme, HIGH);
+    }
+
+  }
+  if (t > 5) {
+    if (temmin_float >= t) {
+      digitalWrite(lampa, LOW);
+      //Serial.print("yanir");
+      //Serial.print(" temmin= ");
+      //Serial.print(temmin_float);
+      //Serial.print(" temmax= ");
+      //Serial.print(temmax_float);
+      //Serial.print(" t= ");
+      //Serial.println(t);
+
+    }
+    else if (temmax_float <= t) {
+      digitalWrite(lampa, HIGH);
+      //Serial.print("sonur");
+      //digitalWrite(lampa, LOW);
+      //Serial.print("yanir");
+      //Serial.print(" temmin= ");
+      //Serial.print(temmin_float);
+      //Serial.print(" temmax= ");
+      //Serial.print(temmax_float);
+      //Serial.print(" t= ");
+      //Serial.println(t);
+    }
+  }
+  if (h > 5) {
+    if (rutmax_float <= h) {
+      digitalWrite(rutubet, HIGH);
+      //Serial.print("sonur");
+      //digitalWrite(lampa, LOW);
+      //Serial.print("yanir");
+      //Serial.print(" rutmin= ");
+      //Serial.print(rutmin_float);
+      //Serial.print(" rutmax= ");
+      //Serial.print(rutmax_float);
+      //Serial.print(" h= ");
+      //Serial.println(h);
+    }
+    else if (rutmin_float >= h) {
+      digitalWrite(rutubet, LOW);
+      //Serial.print("yandir");
+      //digitalWrite(lampa, LOW);
+      //Serial.print("yanir");
+      //Serial.print(" rutmin= ");
+      //Serial.print(rutmin_float);
+      //Serial.print(" rutmax= ");
+      //Serial.print(rutmax_float);
+      //Serial.print(" h= ");
+      //Serial.println(h);
+    }
+  }
+//wdt_reset();
+}
