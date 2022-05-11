@@ -1,0 +1,485 @@
+#from types import NoneType
+from PyQt6.QtWidgets import  QTableWidgetItem, QLineEdit, QPushButton, QCheckBox, QLabel,  QDialog, QListWidgetItem
+from PyQt6.QtWidgets import QHBoxLayout, QWidget,  QVBoxLayout, QListWidget
+from PyQt6.QtCore import  Qt
+from PyQt6.QtGui import  QCursor
+import json
+
+class Filter_UI(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.menu=QDialog()
+        main_layout=QVBoxLayout()
+        begin_layout=QHBoxLayout()
+        end_layout=QHBoxLayout()
+        self.button_a_z=QPushButton("A-Z")
+        self.button_z_a=QPushButton("Z-A")
+        begin_layout.addWidget(self.button_a_z)
+        begin_layout.addWidget(self.button_z_a)
+        
+        main_layout.addLayout(begin_layout)
+        
+        self.search_lineedit=QLineEdit()
+        self.search_lineedit.setPlaceholderText("Filter by value")
+        main_layout.addWidget(self.search_lineedit)
+        select_item_str_label=QLabel("Selected items")
+        self.select_item_int_label=QLabel()
+        self.button_clear=QPushButton("Clear")
+        self.button_clear.setEnabled(False)
+        self.button_hide_column=QPushButton("Hide column")
+        select_item_count_layout=QHBoxLayout()
+        main_layout.addLayout(select_item_count_layout)
+        select_item_count_layout.addWidget(select_item_str_label)
+        select_item_count_layout.addWidget(self.select_item_int_label)
+        
+        self.select_all=QCheckBox("Select all")
+        self.select_all.setChecked(True)
+        select_clear=QHBoxLayout()
+        select_clear.addWidget(self.select_all)
+        select_clear.addWidget(self.button_hide_column)
+        select_clear.addWidget(self.button_clear)
+        #select_clear.addWidget(self.button_hide_column)
+        main_layout.addLayout(select_clear)
+
+
+        self.button_ok=QPushButton("OK")
+        self.button_cancel=QPushButton("Cancel")
+        end_layout.addWidget(self.button_ok)
+        end_layout.addWidget(self.button_cancel)
+
+        self.button_cancel.clicked.connect(self.close_menu)
+
+        self.item_scroll=QListWidget()
+        self.item_scroll.setAlternatingRowColors(True)
+        self.item_scroll.setFixedSize(250,300)
+        main_layout.addWidget(self.item_scroll)
+        main_layout.addLayout(end_layout)
+        self.menu.setLayout(main_layout)
+
+        
+        self.menu.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+        self.menu.setWindowModality(Qt.WindowModality.ApplicationModal)
+        
+        
+        
+
+    def filter_ui(self, data_chack, data_unchack):
+        self.checkbox_list=[]
+        try:
+            self.item_scroll.clear()
+            count_selected_item=0
+            for data in data_chack:
+                if data=="":
+                    data="Empty"
+                self.checkbox_list.append(data)
+                item = QListWidgetItem(data)
+                item.setCheckState(Qt.CheckState.Checked)
+                self.item_scroll.addItem(item)
+                count_selected_item+=1
+            for data in data_unchack:
+                if data=="":
+                    data="Empty"
+                self.checkbox_list.append(data)
+                item = QListWidgetItem(data)
+                item.setCheckState(Qt.CheckState.Unchecked)
+                self.item_scroll.addItem(item)
+            self.select_item_int_label.setText(str(count_selected_item))
+            if count_selected_item==0:
+                self.button_ok.setEnabled(False)
+
+        except Exception as ex:
+            pass
+            print("Item except error = ", ex)
+        cursor = QCursor()
+        print("1",cursor.pos().x(), cursor.pos().y())
+        x_position=cursor.pos().x()-137
+        if (x_position<0):
+            x_position=0
+        self.menu.move(x_position, cursor.pos().y()+15)
+        print(self.menu.geometry(), self.menu.geometry().x())
+
+    def close_menu(self):
+        self.menu.close()
+
+class Filter_Code:
+    def __init__(self, table_name, table_widget, showall_button="", unhide_combobox=""):
+        self.table_name=table_name
+        self.table=table_widget
+        self.filter_ui=Filter_UI()
+        self.all_row_show=True
+        #self.hide_column_list=[]
+        self.table_filter_dict={}
+        self.table_hide_columns={}
+        self.showall_button=showall_button
+        self.unhide_combobox=unhide_combobox
+        
+        #self.data_table.columnCount
+        #self.data_table.rowCount
+        self.max_column=self.table.columnCount()
+        self.row_count=self.table.rowCount()
+        print("max col/ro============",self.max_column,self.row_count)
+        
+        self.read_dict()
+        self.read_hide_columns()
+        self.filter_dict={}
+        try:
+            self.filter_dict=self.table_filter_dict[self.table_name]
+        except Exception as ex:
+            print("filter table dont have:", ex)
+        print(self.filter_dict)
+        try:
+            
+            hidde_columns=self.table_hide_columns[self.table_name]
+            for column_number in range(self.max_column):
+                current_column_text=self.table.horizontalHeaderItem(column_number).text()
+                #print(current_column_text)
+                #print(column_number)
+                if self.table.horizontalHeaderItem(column_number).text() in hidde_columns:
+                    self.table.hideColumn(column_number)
+                    print(column_number, self.table.horizontalHeaderItem(column_number).text()," - column hidded")
+                else:
+                    print(column_number, self.table.horizontalHeaderItem(column_number).text()," - column Shoved")
+        except Exception as ex:
+            print("not hidden column:", ex)
+        
+        
+
+    def read_dict(self):
+        try:
+            with open("filter_dict.txt", 'r+') as f:
+                datas=f.readlines()
+                data_str=""
+                for data in datas:
+                    data_str+=data
+                print(data_str)
+                data_str=data_str.replace("'",'\"')
+                print(data_str)
+                self.table_filter_dict=json.loads(data_str)
+                print("Reading...",datas)
+        except Exception as ex:
+            print("file dont have:", ex)
+
+    def write_dict(self):
+        with open("filter_dict.txt", 'w') as f:
+                #print('Empty!')
+                f.write(str(self.table_filter_dict))
+                f.close()
+        #self.read_key()
+
+    def read_hide_columns(self):
+        print("----------------------------------------------------------------------")
+        try:
+            with open("hide_columns.txt", 'r+') as f:
+                datas=f.readlines()
+                data_str=""
+                for data in datas:
+                    data_str+=data
+                print(data_str)
+                data_str=data_str.replace("'",'\"')
+                print(data_str)
+                self.table_hide_columns=json.loads(data_str)
+                print("Reading hidden column...",datas)
+        except Exception as ex:
+            print("Hidden column file dont have:", ex)
+
+    def write_hide_columns(self):
+        with open("hide_columns.txt", 'w') as f:
+                #print('Empty!')
+                f.write(str(self.table_hide_columns))
+                f.close()
+        #self.read_key()
+
+
+    def filter(self, column):
+        
+        #self.table=table
+        
+        
+        self.filter_ui.search_lineedit.setText("")
+        
+        
+        self.column=column
+        #self.data_table.isRowHidden
+        data_chack=[]
+        
+        for i in range(self.row_count):
+            try:
+                if self.table.isRowHidden(i):
+                    pass
+                else:
+                    data=self.table.item(i, column).text()
+                    data_chack.append(data)
+            except Exception as ex:
+                print("Cannot find this row ",ex)
+        data_unchack=[]
+        try:
+            selected_valuses=self.filter_dict[str(self.column)]
+            if selected_valuses:
+                for data in selected_valuses:
+                    data_unchack.append(data)
+                self.filter_ui.button_clear.setEnabled(True)
+                print("filtiring....")
+            else:
+                print("dont have filtir")
+        except Exception as ex:
+            print("Old filter data:", ex)
+
+        print("start dict:",self.filter_dict)
+        self.data_chack=set(data_chack)
+        self.data_unchack=set(data_unchack)
+        self.data_chack=sorted(self.data_chack)
+        self.data_unchack=sorted(self.data_unchack)
+        #print("chck list", self.data_chack)
+        #print(self.data_unchack)
+        #print(type(self.data_chack))
+
+        self.filter_ui.filter_ui(self.data_chack, self.data_unchack)
+        self.filter_button_control()
+        
+
+        self.filter_ui.menu.exec()
+
+    def filter_button_control(self):
+        self.filter_ui.button_a_z.clicked.connect(lambda x: self.sort(True))
+        self.filter_ui.button_z_a.clicked.connect(lambda x: self.sort(False))
+        self.filter_ui.button_clear.clicked.connect(self.clear_data)
+        self.filter_ui.button_hide_column.clicked.connect(self.hide_column)
+        self.filter_ui.search_lineedit.textChanged.connect(self.search_menu_data)
+        self.filter_ui.button_ok.clicked.connect(self.filter_ok)
+        self.filter_ui.select_all.clicked.connect(self.select_all_check)
+        self.filter_ui.item_scroll.clicked.connect(self.select_change)
+
+
+    def select_change(self):
+        print("select_change")
+        check_data=False
+        uncheck_data=False
+        count_selected_item=0
+        for index in range(self.filter_ui.item_scroll.count()):
+            item = self.filter_ui.item_scroll.item(index)
+            if item.checkState() == Qt.CheckState.Unchecked:
+                uncheck_data=True
+            elif item.checkState() == Qt.CheckState.Checked:
+                check_data=True
+                count_selected_item+=1
+        self.filter_ui.select_item_int_label.setText(str(count_selected_item))
+        if count_selected_item==0:
+            self.filter_ui.button_ok.setEnabled(False)
+        else:
+            self.filter_ui.button_ok.setEnabled(True)
+
+        if uncheck_data==True and check_data==True:
+            self.filter_ui.select_all.setCheckState(Qt.CheckState.PartiallyChecked)
+        elif check_data==True:
+            self.filter_ui.select_all.setCheckState(Qt.CheckState.Checked)
+        elif uncheck_data==True:
+            self.filter_ui.select_all.setCheckState(Qt.CheckState.Unchecked)
+
+    def select_all_check(self):
+        print("select all")
+        cheched=self.filter_ui.select_all
+        self.filter_ui.item_scroll.clear()
+        
+        if cheched.checkState()==Qt.CheckState.Unchecked:
+            self.filter_ui.button_ok.setEnabled(False)
+            print("Unchecked")
+            for data in self.filter_ui.checkbox_list:
+                item = QListWidgetItem(data)
+                #item.setCheckState(Qt.CheckState.Checked)
+                item.setCheckState(Qt.CheckState.Unchecked)
+                self.filter_ui.item_scroll.addItem(item)
+            self.filter_ui.select_item_int_label.setText(str(0))
+        else:
+            self.filter_ui.button_ok.setEnabled(True)
+            count_selected_item=0
+            print("checked")
+            self.filter_ui.select_all.setCheckState(Qt.CheckState.Checked)
+            for data in self.filter_ui.checkbox_list:
+                item = QListWidgetItem(data)
+                item.setCheckState(Qt.CheckState.Checked)
+                self.filter_ui.item_scroll.addItem(item)
+                count_selected_item+=1
+            self.filter_ui.select_item_int_label.setText(str(count_selected_item))
+        print(self.filter_ui.checkbox_list)
+
+
+    def search_menu_data(self):
+        print("Shearing...")
+        self.search_data=self.filter_ui.search_lineedit.text()
+        self.filter_ui.select_all.setChecked(True)
+        self.filter_ui.item_scroll.clear()
+        self.filter_ui.checkbox_list=[]
+        self.data_unseach_filter=[]
+        count_selected_item=0
+        for i in range(self.row_count):
+            data=self.table.item(i, self.column).text()
+            if self.table.isRowHidden(i)==False and self.search_data not in data:
+                self.data_unseach_filter.append(data)
+        for data in self.data_chack:
+            if self.search_data.upper() in data.upper():
+                if data=="":
+                    data="Empty"
+                self.filter_ui.checkbox_list.append(data)
+                item = QListWidgetItem(data)
+                item.setCheckState(Qt.CheckState.Checked)
+                self.filter_ui.item_scroll.addItem(item)
+                count_selected_item+=1
+            else:
+                self.data_unseach_filter.append(data)
+        #print("UnSheach data 1:",  self.data_unseach_filter)
+        for data in self.data_unchack:
+            if self.search_data.upper() in data.upper():
+                if data=="":
+                    data="Empty"
+                self.filter_ui.checkbox_list.append(data)
+                item = QListWidgetItem(data)
+                item.setCheckState(Qt.CheckState.Unchecked)
+                self.filter_ui.item_scroll.addItem(item)
+            else:
+                self.data_unseach_filter.append(data)
+        #print("UnSheach data 2:",  self.data_unseach_filter)
+        self.filter_ui.select_item_int_label.setText(str(count_selected_item))
+        #self.filter_dict[self.column]=self.data_unseach_filter
+
+    def clear_data(self):
+        
+        current_column_text=self.table.horizontalHeaderItem(self.column).text()
+        
+        if '*' in current_column_text:
+            
+            #self.filter_dict[str(self.column)]=None
+            if str(self.column) in self.filter_dict:
+                del self.filter_dict[str(self.column)]
+            self.filter_prossesing()
+            current_column_text=current_column_text.replace(" *", "")
+            cell=QTableWidgetItem(current_column_text)
+            self.table.setHorizontalHeaderItem(self.column,cell )
+            self.write_dict()
+        #self.calculate_balance(self.table, self.row_count, self.max_column)
+
+    def filter_ok(self):
+        self.item_checked_list=[]
+        try:
+            self.item_checked_list=self.data_unseach_filter
+        except Exception as ex:
+            print("Non shearch prosses:", ex)
+        for index in range(self.filter_ui.item_scroll.count()):
+            item = self.filter_ui.item_scroll.item(index)
+            if item.checkState() == Qt.CheckState.Unchecked:
+                if item.text()=="Empty": 
+                    self.item_checked_list.append("")
+                else:
+                    self.item_checked_list.append(item.text())
+        try:
+            for data in self.data_unseach:
+                if data=="Empty": 
+                    self.item_checked_list.append("")
+                else:
+                    self.item_checked_list.append(data)
+        except Exception as ex:
+            print("Shearche dont start:", ex)
+        #print("non-select list:",self.data_unseach)
+        self.data_unseach=[]
+        
+        print("----------------------------------------------------------------------------------------------------")
+        print(self.item_checked_list)
+        print("Dictionary----------------------------------------------------------------------------------------------------------------------------")
+        self.filter_dict[str(self.column)]=self.item_checked_list
+        self.filter_prossesing()
+        self.filter_sign(True)
+        
+    
+    
+    def filter_prossesing(self):
+        for i in range(self.row_count):
+            self.table.showRow(i)
+            #self.table.hideRow(i)
+        self.all_row_show=True
+        if self.filter_dict:
+            
+            for filter_column, filter_data in zip(self.filter_dict, self.filter_dict.values()):
+                for i in range(self.row_count):
+                    
+                    data=self.table.item(i,int(filter_column)).text()
+                    
+                    
+                    if data in filter_data:
+                        self.table.hideRow(i)
+                        self.all_row_show=False
+                        
+        else:
+            for i in range(self.row_count):
+                self.table.showRow(i)
+        if self.all_row_show==False:
+            self.showall_button.setEnabled(True)
+        else:
+            self.showall_button.setEnabled(False)
+        self.filter_ui.menu.close()
+        
+        print( self.filter_dict)
+
+    def show_all_filter(self):
+        for i in range(self.row_count):
+            self.table.showRow(i)
+        del self.table_filter_dict[self.table_name]
+        self.filter_dict={}
+        self.write_dict()
+        for i in range(self.max_column):
+            current_column_text=self.table.horizontalHeaderItem(i).text()
+            if '*' in current_column_text:
+                current_column_text=current_column_text.replace(" *", "")
+                cell=QTableWidgetItem(current_column_text)
+                self.table.setHorizontalHeaderItem(i,cell )
+
+    def filter_sign(self, filter=False):
+        if filter==True:
+            current_column_text=self.table.horizontalHeaderItem(self.column).text()
+            if '*' not in current_column_text:
+                cell=QTableWidgetItem(current_column_text+" *")
+                self.table.setHorizontalHeaderItem(self.column,cell )
+            #self.calculate_balance(self.table, self.row_count, self.max_column)
+            self.table_filter_dict[self.table_name]=self.filter_dict
+            self.write_dict()
+        else:
+            for column in self.filter_dict:
+                current_column_text=self.table.horizontalHeaderItem(int(column)).text()
+                cell=QTableWidgetItem(current_column_text+" *")
+                self.table.setHorizontalHeaderItem(int(column), cell )
+
+        
+
+    def hide_column(self, hide=True):
+        print(self.column, "Column hiding")
+        if hide:
+            print(self.column, "Column hided")
+        self.table.hideColumn(self.column)
+        #self.table.setColumnWidth(self.column, 1)
+        self.filter_ui.menu.close()
+        self.head = self.table.horizontalHeaderItem(self.column).text()
+        #self.hide_column_list.append(self.head)
+        #self.unhide_combobox.setEnabled(True)
+        #self.unhide_combobox.addItem(self.head)
+        if self.table_name in self.table_hide_columns:
+            heads=list(self.table_hide_columns[self.table_name])
+            heads.append(self.head)
+        else:
+            heads=[self.head]
+        heads=list(set(heads))
+        self.table_hide_columns[self.table_name]=heads
+        print(self.table_hide_columns)
+        self.write_hide_columns()
+        #self.combobox = QComboBox()
+        #self.combobox.insertPolicy.
+
+    def sort(self, a_z=True):
+        self.filter_ui.menu.close()
+        if a_z:
+            self.table.sortByColumn(self.column, Qt.SortOrder.AscendingOrder)
+        else:
+            self.table.sortByColumn(self.column, Qt.SortOrder.DescendingOrder)
+
+    def window_size(self):
+        pass
+
+    def table_size(self):
+        pass
