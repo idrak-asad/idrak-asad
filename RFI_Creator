@@ -1,0 +1,604 @@
+from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QLineEdit, QGridLayout, QProgressBar, QApplication, QFileDialog, QDialog
+from openpyxl import load_workbook, Workbook, drawing
+from openpyxl.styles import Alignment
+from openpyxl.styles.borders import Border, Side
+line_RFI=None
+label_info=None
+line_from=None
+line_to=None
+label_error=None
+def RFI_funk():
+    label_error.setText("")
+
+    pb.setValue(0)
+    label_info.setText("RFI ünvanı oxunur")
+    unvan=""
+    try:
+        unvan=line_from.text()
+    except:
+        unvan=""
+
+    if unvan=="":
+        unvan=r'd:\Users\iesedbeyli\Desktop\RFI.xlsx'
+    
+    
+
+    RFI=line_RFI.text()
+    label_info.setText("RFI nömrəsi oxunur")
+
+    
+    pb.setValue(3)
+    print(RFI)
+    RFI_list=[]
+    
+    if RFI!="":
+        try:
+            RFI=RFI.split(",")
+            for RFI_ in RFI:
+                if RFI_.find("-")!= -1:
+                    RFI_=RFI_.split("-")
+                    for rfi in range(int(RFI_[0]),int(RFI_[1])+1):
+                        rfi=str(rfi)
+                        if len(rfi)<5:
+                            rfi=(5-len(rfi))*"0"+rfi
+                            print(rfi)
+                            RFI_list.append(rfi)
+                        else:
+                            RFI_list.append(rfi)
+                else:
+                    if len(RFI_)<5:
+                        RFI_=(5-len(RFI_))*"0"+RFI_
+                        print(RFI_)
+                        RFI_list.append(RFI_)
+                    else:
+                        RFI_list.append(RFI_)
+            del RFI
+            print(RFI_list)
+
+            pb.setValue(5)
+            label_info.setText("RFI cədvəli açılır")
+            wb = load_workbook(unvan, data_only=True)
+            pb.setValue(27)
+            #sh_num = wb.worksheets
+            #sh=wb.copy_worksheet[1]
+            sh=[]
+            try:
+                sh = wb["RFI Log For Piping Works"]
+            except:
+                pass
+            try:
+                sh = wb["RFI Log For Mechanical Rotating"]
+            except:
+                pass
+            try:
+                sh = wb["RFI Log For Mechanical Static"]
+            except:
+                pass
+            try:
+                sh = wb["RFI Log For Civil Works"]
+            except:
+                pass
+            try:
+                sh = wb["RFI Log For Electrical Works"]
+            except:
+                pass
+            try:
+                sh = wb["RFI Log For FireProofing Works"]
+            except:
+                pass
+            try:
+                sh = wb["RFILog For Instrumentation Work"]
+            except:
+                pass
+            try:
+                sh = wb["RFI Log For Insulation Works"]
+            except:
+                pass
+            try:
+                sh = wb["RFI Log For Painting Works"]
+            except:
+                pass
+            try:
+                sh = wb["RFI Log For Steel Works"]
+            except Exception as ex:
+                print(ex)
+                
+
+
+
+
+            #sh_rfi=wb["RFI FORM"]
+            A_all=sh["A"]
+            l=len(A_all)
+            wb.close()
+            del wb
+            #print(l)
+            row=[]
+            label_info.setText("RFI-lar axtarırılır")
+            for RFI in RFI_list:
+                #print(RFI)
+                for i in range (4,l):
+                    col_row="A"+str(i)
+                    #print(col_row)
+                    #print(sh[col_row].value)
+                    if sh[col_row].value==RFI:
+                        #print(col_row)
+                        row.append(i)
+                        break
+            if not row:
+                label_error.setText("RFI nömrəsi tapılmadı")
+                print("RFI list is Empti")
+            #unvan=r'd:\Users\iesedbeyli\Desktop\RFI_FORM.xlsx'
+            #wb1 = load_workbook(unvan, data_only=True)   
+            #sh1 = wb1["RFI"]
+            RFI_to=str(line_to.text())
+            try:
+                wb_info = load_workbook("info.xlsx")
+                sh_info=wb_info["Sheet1"]
+                sh_info["A1"]=unvan
+                sh_info["A2"]=RFI_to
+                wb_info.save(r'info.xlsx')
+                wb_info.close()
+            except Exception:
+                wb_info = Workbook()
+                wb_info.create_sheet(index = 0 , title = "Sheet1")
+                sheet = wb_info.active
+                A1=sheet["A1"]
+                A1.value=unvan
+                A2=sheet["A2"]
+                A2.value=RFI_to
+                wb_info.save('info.xlsx')
+                wb_info.close()
+
+            unvan_copy=r'd:\R.xlsx'
+            pb.setValue(30)
+            count=0
+        except Exception as ex:
+            label_error.setText(ex)
+        for i in row:
+            print("Data adding to cells ...")
+            label_info.setText("Yeni RFI üçün file yaradilir")
+            wb_copy = load_workbook(unvan_copy, data_only=True)
+            try:
+                data=sh['B'+str(i)].value
+                label_info.setText(data+" nömrəli RFI yaradılır...")
+                RFI_date=sh['F'+str(i)].value
+                sh_copy=wb_copy["RFI"]
+                
+                sh_copy["H4"]=data
+                sh_copy["AA4"]=RFI_date
+                
+                if (RFI_to[-1])!="/":
+                    RFI_to+="/"
+                print(RFI_to)
+                unvan_copy_pdf=RFI_to+data+'.pdf'
+                #unvan_copy_pdf=r'd:'+data+'.pdf'
+                '''
+                img = drawing.image.Image('kt3.png')
+                img.height = 45  
+                img.width = 120 
+                img.anchor='E1'
+                sh_copy.add_image(img)
+                print(type(sh_copy))
+                #B1=sh_copy["B1"]
+                #B1.alignment = Alignment(horizontal='center', vertical='center')
+                #''
+                thin_border = Border(top=Side(style='thin'))
+                column=["B"]
+                for i in column:
+                        for_border=sh_copy[i+str(1)]
+                        print(type(for_border))
+                        for_border.border = thin_border
+                #''
+                
+                print(" for finised")
+                B2=sh_copy["B2"]
+                
+                img = drawing.image.Image('socar.png')
+                img.height = 50  
+                img.width = 120 
+                img.anchor='E2'
+                img.alignment = Alignment(horizontal='center', vertical='center')
+                sh_copy.add_image(img)
+                print(" img2 finised")
+                '''
+
+                RFI_date=sh['E'+str(i)].value
+                sh_copy["H6"]=RFI_date
+                print(" H6 finised")
+                RFI_date=sh['G'+str(i)].value
+                sh_copy["D8"]=RFI_date
+
+                RFI_date=sh['H'+str(i)].value
+                sh_copy["D9"]=RFI_date
+
+                RFI_date=sh['J'+str(i)].value
+                sh_copy["T9"]=RFI_date
+
+                RFI_date=sh['K'+str(i)].value
+                sh_copy["I11"]=RFI_date
+
+                RFI_date=sh['L'+str(i)].value
+                sh_copy["I12"]=RFI_date
+
+                RFI_date=sh['M'+str(i)].value
+                sh_copy["O12"]=RFI_date
+
+                RFI_date=sh['D'+str(i)].value
+                sh_copy["W12"]=RFI_date
+
+                RFI_date=sh['C'+str(i)].value
+                sh_copy["AB12"]=RFI_date
+
+                RFI_date=str(sh['N'+str(i)].value)
+                RFI_date+="\n"+str(sh['X'+str(i)].value)
+                RFI_date+=" /\n"+str(sh['Z'+str(i)].value)
+                sh_copy["I14"]=RFI_date
+
+                RFI_date=sh['O'+str(i)].value
+                sh_copy["W14"]=RFI_date
+
+                RFI_date=sh['P'+str(i)].value
+                sh_copy["I15"]=RFI_date
+
+                RFI_date=sh['Q'+str(i)].value
+                sh_copy["I16"]=RFI_date
+
+                RFI_date=sh['U'+str(i)].value
+                sh_copy["B29"]=RFI_date
+
+                RFI_date=sh['U'+str(i)].value
+                sh_copy["B29"]=RFI_date
+
+                RFI_date=sh['R'+str(i)].value
+                if RFI_date=="W":
+                    sh_copy["W19"]="X"
+                elif RFI_date=="H":
+                    sh_copy["O19"]="X"
+                
+                RFI_date=sh['S'+str(i)].value
+                if RFI_date=="W":
+                    sh_copy["W22"]="X"
+                elif RFI_date=="H":
+                    sh_copy["O22"]="X"
+
+                RFI_date=sh['T'+str(i)].value
+                if RFI_date=="W":
+                    sh_copy["W25"]="X"
+                elif RFI_date=="H":
+                    sh_copy["O25"]="X"
+                elif RFI_date=="NA":
+                    sh_copy["AC25"]="X"
+                
+                print("Excel saving")
+                wb_copy.save(r'd:\RFI_temp2.xlsx')
+                #sh_copy.close()
+                wb_copy.close()
+            
+
+                from win32com.client import DispatchEx
+
+                # Get a new Application object
+                xl = DispatchEx("Excel.Application")
+
+                # Stop Excel from displaying alerts
+                xl.DisplayAlerts = False
+
+                # Load the workbook
+                wb_pdf = xl.Workbooks.Open(r'd:\RFI_temp2.xlsx',ReadOnly=1)
+                print("PDF Creating")
+                try:
+                    label_info.setText(data+" nömrəli RFI yaddaşa yazılır")
+                    # Calculate the workbook
+                    xl.CalculateFull()
+                    label_info.setText(data+" nömrəli RFI yaddaşa yazılır...")
+                    # Do anything else you like here to update the workbook
+
+                    # Poll windows event loop (same as VBA DoEvents)
+                    #from pythoncom import PumpWaitingMessages
+                    #PumpWaitingMessages()
+
+                    # Export as pdf
+                    # See https://docs.microsoft.com/en-us/office/vba/api/Excel.Workbook.ExportAsFixedFormat
+                    # xlTypePDF = 0
+                    wb_pdf.ExportAsFixedFormat(0, unvan_copy_pdf)
+                    print(data)
+                    wb_pdf.Close(True)
+                except Exception as ex:
+                    print(ex)
+                    wb_pdf.Close(True)
+                    label_error.setText(label_error.text()+data+" nömrəli RFİ yaradıla bilmədi. "+str(ex)+"\n")
+
+            except Exception as ex:
+                print(ex)
+                wb_copy.close()
+                label_error.setText(label_error.text()+data+" nömrəli RFİ yaradıla bilmədi. "+str(ex)+"\n")
+
+            max_num=len(row)
+            #max_num=max_num-count
+            num=70/max_num
+            count+=1
+            pb.setValue(30+(num*count))
+            print(30+(num*count))
+            
+            
+
+        '''
+        for i in row:
+            wb1 = openpyxl.Workbook()
+            data=sh['B'+str(i)].value
+            wb1.create_sheet(index = 0 , title = "RFI")
+            try:
+                std=wb1.get_sheet_by_name('Sheet')
+                wb1.remove_sheet(std)
+            except:Exception
+            sheet = wb1.active
+            H4=sheet["H4"]
+            H4.alignment = Alignment(horizontal='center', vertical='center')
+            H4.value=data
+            column=["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","AA","AB","AC","AD","AE"]
+            for i in column:
+                sheet.column_dimensions[i].width = float(3.99)
+            row=[43.20, 45, 5.25, 17.60, 17.60, 17.60, 7.90, 17.60, 17.60, 5.25, 127.90, 38.80, 5.25, 57.35, 63.50, 209.10, 5.25, 15, 13.20, 5, 5.25, 5, 13.20, 5, 4, 13.25, 4, 4, 15, 56.45, 5.25, 15, 15, 15, 15, 15, 15, 4, 4, 15, 5.25, 13.20, 10.55, 5.25, 13.20, 10.55, 5.25, 5.25, 13.20, 10.55, 5.25, 15, 5.25, 13.20, 5.25, 15, 22.90, 5.25, 27.35, 27.35, 27.35, 27.35]
+            for i in range(1, 61):
+                sheet.row_dimensions[i].height = row[i-1] 
+            
+            sheet.merge_cells('A1:A60')
+            sheet.merge_cells('B1:K1')
+            sheet.merge_cells('B2:K2')
+            sheet.merge_cells('Z1:AE1')
+            sheet.merge_cells('V2:AE2')
+            sheet.merge_cells('L1:Y1')
+            sheet.merge_cells('L2:U2')
+            sheet.merge_cells('A3:AE3')
+            sheet.merge_cells('B4:G4')
+            sheet.merge_cells('H4:W4')
+            sheet.merge_cells('X4:Z4')
+            sheet.merge_cells('AA4:AE4')
+            sheet.merge_cells('B5:G5')
+            sheet.merge_cells('H5:AE5')
+            sheet.merge_cells('B6:G6')
+            sheet.merge_cells('H6:AE6')
+            sheet.merge_cells('A7:AE7')
+            sheet.merge_cells('B8:C8')
+            sheet.merge_cells('D8:O8')
+            sheet.merge_cells('P8:S8')
+            sheet.merge_cells('T8:AE8')
+            sheet.merge_cells('B9:C9')
+            sheet.merge_cells('D9:O9')
+            sheet.merge_cells('P9:S9')
+            sheet.merge_cells('T9:AE9')
+            sheet.merge_cells('A10:AE10')
+            sheet.merge_cells('B11:H11')
+            sheet.merge_cells('I11:AE11')
+            sheet.merge_cells('B12:H12')
+            sheet.merge_cells('I12:N12')
+            sheet.merge_cells('O12:R12')
+            sheet.merge_cells('S12:V12')
+            sheet.merge_cells('W12:AA12')
+            sheet.merge_cells('AB12:AE12')
+            sheet.merge_cells('A13:AE13')
+
+            
+            thin_border = Border(left=Side(style='thin'), 
+                     right=Side(style='thin'), 
+                     top=Side(style='thin'), 
+                     bottom=Side(style='thin'))
+            for i in column:
+                for j in range(1,60):
+                    for_border=sheet[i+str(j)]
+                    for_border.border = thin_border
+
+            print(sheet["H4"].value)
+
+            thin_border_right = Border(left=Side(style='thin'), 
+                     right=Side(style=None), 
+                     top=Side(style='thin'), 
+                     bottom=Side(style='thin'))
+            border_right=["N12", "AA12"]
+            for i in border_right:
+                for_border=sheet[i]
+                for_border.border = thin_border_right
+
+            thin_border_left = Border(left=Side(style=None), 
+                     right=Side(style='thin'), 
+                     top=Side(style='thin'), 
+                     bottom=Side(style='thin'))
+
+            border_left=["O12", "AB12"]
+            for i in border_left:
+                for_border=sheet[i]
+                for_border.border = thin_border_left
+
+            L1=sheet["L1"]
+            L1.alignment = Alignment(horizontal='center', vertical='center')
+            L1.value="REQUEST FOR INSPECTION"
+            fontStyle = Font(size = "11", bold=True)
+            L1.font = fontStyle
+
+            L2=sheet["L2"]
+            L2.alignment = Alignment(horizontal='center', vertical='center')
+            #L2.style.alignment.wrap_text = True
+            L2.value="SOCAR HAOR MODERNIZATION AND RECONSTRUCTION PROJECT BAKU- AZERBAIJAN\nREPUBLIC EPC CONTRACT PACKAGE A"
+            fontStyle = Font(size = "6", bold=True)
+            L2.font = fontStyle
+
+            V2=sheet["V2"]
+            V2.alignment = Alignment(horizontal='center', vertical='center')
+            #V2.style.alignment.wrap_text = True
+            V2.value="STATE OIL COMPANY OF AZERBAIJAN, REPUBLIC OIL REFINERY NAMED AFTER HEYDAR\nALIYEV (SOCAR HAOR)"
+            fontStyle = Font(size = "6", bold=True)
+            V2.font = fontStyle
+            
+
+            Z1=sheet["Z1"]
+            Z1.value="MOD-RFI-SOE Is. 1\n05-Jun-16"
+            Z1.alignment = Alignment(horizontal='center', vertical='center')
+            fontStyle = Font(size = "8", bold=True)
+            Z1.font = fontStyle
+
+            #'''
+
+
+        
+        '''
+        import pandas as pd
+        import pdfkit
+        
+        df = pd.read_excel(unvan_copy)
+        df.to_html("file.html")
+        pdfkit.from_file("file.html", "file1.pdf")
+        
+        from openpyxl import load_workbook
+        from pdfrw import PdfReader, PdfWriter, PageMerge
+
+        import pandas as pd
+        from pdfrw import PdfWriter
+
+        wb = pd.read_excel(unvan_copy)
+        print(wb)
+        wb=PdfWriter()
+
+        wb.write('result.pdf')
+
+        from win32com import client
+        import win32api
+        import pathlib
+
+        ### pip install pypiwin32 if module not found
+
+        excel_file = unvan_copy
+        pdf_file = unvan_copy_pdf
+        excel_path = str(pathlib.Path.cwd() / excel_file)
+        pdf_path = str(pathlib.Path.cwd() / pdf_file)
+
+        excel = client.DispatchEx("Excel.Application")
+        excel.Visible = 0
+
+        wb = excel.Workbooks.Open(excel_path)
+        ws = wb.Worksheets[1]
+
+        try:
+            wb.SaveAs(pdf_path, FileFormat=57)
+        except Exception as e:
+            print("Failed to convert")
+            print(str(e))
+        finally:
+            wb.Close()
+            excel.Quit()
+        #'''
+        
+        label_info.setText("Proses tamamlandı")
+        print("Complated")
+        pb.setValue(100)
+
+#from pathlib import Path
+
+def File_from():
+    dialog = QFileDialog()
+    dialog.setWindowTitle('RFI faylını qeyd edin')
+    dialog.setFileMode(QFileDialog.ExistingFile)
+    if dialog.exec_() == QDialog.Accepted:
+        fn = str(dialog.selectedFiles()[0])
+    else:
+        return None
+
+    #tmslist.fnamecoil = fn
+    line_from.setText(fn) 
+
+def File_to():
+    result = str(QFileDialog.getExistingDirectory())
+    line_to.setText(result) 
+
+
+
+
+if __name__ == "__main__":
+    import sys
+    app = QApplication(sys.argv)
+    w = QWidget()
+    w.resize(500,200)
+    #w.setWindowIcon(QIcon('picture.png'))
+    w.setWindowTitle('RFI Creater v1.0.2')
+
+    grid=QGridLayout(w)
+    
+    
+    label_from = QLabel()
+    label_from.setText("Cədvəlin olduğu ünvan")
+
+    line_from=QLineEdit()
+    btn_from=QPushButton("...")
+    
+
+    label_to = QLabel()
+    label_to.setText("RFI-ın yazılacağı ünvan")
+    
+
+    line_to=QLineEdit()
+    btn_to=QPushButton("...")
+
+
+    try:
+        wb_info = load_workbook("info.xlsx", data_only=True, read_only=True)
+        sh_info=wb_info["Sheet1"]
+        data=sh_info["A1"].value
+        line_from.setText(str(data))
+        data=sh_info["A2"].value
+        line_to.setText(str(data))
+        wb_info.close()
+        
+    except Exception as ex:
+        print(ex)
+        pass
+
+    label_RFI = QLabel()
+    label_RFI.setText("RFI nömrəsi")
+    line_RFI=QLineEdit()
+    
+
+
+    pb = QProgressBar(textVisible=False, objectName="GreenProgressBar")
+    pb.setStyleSheet('''QProgressBar
+                          {
+                            background-color: White;
+                            border-style: outset;
+                            border: 2px solid #2196F3;
+                            border-radius: 15px;
+                            border-color: beige;
+                            font: bold 4px;
+                            min-width: 3em;
+                            border: 2px solid #2196F3;
+                          }'''
+                          )
+    
+    label_info = QLabel()
+    label_error = QLabel()
+    btn_RFI_open = QPushButton()
+    btn_RFI_open.setText('RFI Yarat')
+    btn_RFI_open.clicked.connect(RFI_funk)
+    btn_from.clicked.connect(File_from)
+    btn_to.clicked.connect(File_to)
+
+    grid.addWidget(label_from,0,0,1,1)
+    grid.addWidget(line_from,0,1,1,3)
+    grid.addWidget(btn_from,0,4,1,1)
+
+    grid.addWidget(label_to,1,0,1,1)
+    grid.addWidget(line_to,1,1,1,3)
+    grid.addWidget(btn_to,1,4,1,1)
+
+    grid.addWidget(label_RFI,2,0,1,1)
+    grid.addWidget(line_RFI,2,1,1,4)
+
+    grid.addWidget(btn_RFI_open,3,0,1,5)
+    grid.addWidget(pb,4,0,1,5)
+    grid.addWidget(label_info,5,0,1,5)
+    grid.addWidget(label_error,6,0,1,5)
+
+    
+    
+    w.show()
+    sys.exit(app.exec_())
+
+
