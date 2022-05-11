@@ -1,0 +1,135 @@
+import requests
+from bs4 import BeautifulSoup
+
+
+
+
+siyahi_az_url="https://siyahi.az/sirketler"
+page = requests.get(siyahi_az_url)
+
+soup = BeautifulSoup(page.content, "html.parser")
+#results = soup.find(id="fb-root")
+#"""
+job_elements = soup.find_all("ul", class_="list-unstyled")
+area=[]
+for index,job_element in enumerate(job_elements,0):
+    #company_element = job_element.find("a", href="javascript:void(0)")
+    if(index==3):
+        jobs_line=job_element.find_all("li")
+        for job_line in jobs_line:
+            job=job_line.find("a").text.strip()
+            
+            #print(job, end="\n")
+            area.append(job)
+            
+    
+print(area)
+print("---------------------------------------")
+
+for i in area:
+    siyahi_az_job_url=siyahi_az_url+"/i"
+    page = requests.get(siyahi_az_url)
+    soup = BeautifulSoup(page.content, "html.parser")
+    job_elements = soup.find_all("div", class_="container")
+    #print(job_elements)
+    jobs=[]
+    #for index,job_element in enumerate(job_elements,0):
+            #print(job_element)
+            #print("-------for2")
+    #company_element = job_element.find("a", href="javascript:void(0)")
+        #if(index==3):
+    jobs_line=job_elements.find_all("a")
+    for job_line in jobs_line:
+                #job=job_line.find("a").text.strip()
+                #pass
+                print(job_line, end="\n")
+                #jobs.append(job)
+    print("---------------------------------------")
+
+
+
+#''''
+job_elements = soup.find_all("ul", class_="pagination list-inline")
+area=[]
+for index,job_element in enumerate(job_elements,0):
+    #company_element = job_element.find("a", href="javascript:void(0)")
+    #if(index==3):
+        jobs_line=job_element.find_all("li", class_="pagination-link")
+        for job_line in jobs_line:
+            job=job_line.find("a").text.strip()
+            
+            #print(job, end="\n")
+            #area.append(job)
+            #print("---------------------------------------")
+
+
+job_elements = soup.find_all("div", class_="row mb-3")
+for index,job_element in enumerate(job_elements,0):
+    jobs_line=job_element.find_all("a")
+    #print(job_element)
+    #for job_line in jobs_line:
+        #print(job_line, end="\n")
+        #print("---------------------------------------for2")
+    #area.append(job)
+    #print("---------------------------------------",index)
+
+    print("start")
+'''
+'''
+for i in soup.find_all('a', href = True):
+        #print("next...", i)
+    # check all link which is contain
+    # "www.geeksforgeeks.org" string 
+        if("www.geeksforgeeks.org" in i['href']):
+            
+            # call get method to request next url
+            nextpage = requests.get(i['href'])
+            
+            # create soup for next url
+            nextsoup = BeautifulSoup(nextpage.content, 'html.parser')
+            
+            # we can scrap any thing of the
+            # next page here we are scraping title of 
+            # nexturl page string
+            print("next url title : ",nextsoup.find('title').string)
+#'''
+#'''
+job_elements = soup.find_all("div", class_="col-8 col-sm-6 col-md-4 col-lg-3 mx-auto")
+for count, i in enumerate(job_elements,0):
+    job_element = i.find("a")
+    print(i)
+print("---------")
+
+pload = {'daqta-id':"2"}
+r = requests.put(siyahi_az_url,data = pload)
+soup = BeautifulSoup(r.content, "html.parser")
+job_elements = soup.find_all("div", class_="col-8 col-sm-6 col-md-4 col-lg-3 mx-auto")
+for count, i in enumerate(job_elements,0):
+    job_element = i.find("a")
+    print(i)
+
+#'''
+
+#"""
+from urllib3 import urlopen as uReq
+from bs4 import BeautifulSoup as soup
+import requests
+import re
+
+my_url = "https://www.newegg.com/Product/ProductList.aspx?Submit=StoreIM&IsNodeId=1&bop=And&Depa=1&Category=38&Page=2&PageSize=12&order=BESTMATCH"
+uClient = uReq(my_url)
+page_html = uClient.read()
+uClient.close()
+page_soup = soup(page_html, "html.parser")
+
+containers = page_soup.findAll("div",{"class":"item-container"})
+container = containers[0]
+
+for container in containers:
+        title_container = container.findAll("a",{"class":"item-title"})
+        product_name = title_container[0].text
+        print("product_name: " + product_name)
+
+
+#"""
+
