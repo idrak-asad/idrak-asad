@@ -1,0 +1,250 @@
+import sys
+from PyQt5.QtCore import QDir, Qt, QUrl
+from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer
+from PyQt5.QtMultimediaWidgets import QVideoWidget
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QWidget, QMenuBar, QGridLayout, QAction, QFileDialog, QSlider,\
+QMainWindow, QPushButton, QStyle, QLabel, QSizePolicy, QHBoxLayout, QVBoxLayout
+from PyQt5.QtGui import QIcon, QPalette
+
+class MainWindo(QWidget):
+    def __init__(self):
+        QWidget.__init__(self)
+
+        self.window_ayarlar()
+        self.menu()
+        self.media_player()
+
+    def media_player(self):
+        
+        self.mediaPlayer = QMediaPlayer(None, QMediaPlayer.VideoSurface)
+
+        p =self.palette()
+        p.setColor(QPalette.Window, Qt.black)
+        #self.setPalette(p)
+        videoWidget = QVideoWidget()
+        
+
+        self.playButton = QPushButton()
+        self.playButton.setHidden(True)
+        self.playButton.setEnabled(False)
+        self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
+        self.playButton.clicked.connect(self.play)
+
+        self.stopButton= QPushButton()
+        self.stopButton.setHidden(True)
+        self.stopButton.setEnabled(False)
+        self.stopButton.setIcon(self.style().standardIcon(QStyle.SP_MediaStop))
+        self.stopButton.clicked.connect(self.stop)
+
+        self.positionSlider = QSlider(Qt.Horizontal)
+        self.positionSlider.hide()
+        self.positionSlider.setRange(0, 0)
+        self.positionSlider.sliderMoved.connect(self.setPosition)
+
+        self.timeLabel= QLabel()
+
+        self.errorLabel = QLabel()
+        self.errorLabel.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+
+        # Create layouts to place inside widget
+        controlLayout = QHBoxLayout()
+        controlLayout.setContentsMargins(0, 0, 0, 0)
+        controlLayout.addWidget(self.playButton)
+        controlLayout.addWidget(self.stopButton)
+        controlLayout.addWidget(self.positionSlider)
+        controlLayout.addWidget(self.timeLabel)
+
+        self.labelBaslıq=QLabel()
+
+        layout1 = QVBoxLayout()
+        layout1.addLayout(controlLayout)
+        layout1.addWidget(self.labelBaslıq)
+        layout1.addWidget(self.errorLabel)
+
+        # Set widget to contain window contents
+        self.mediaPlayer.setVideoOutput(videoWidget)
+        self.mediaPlayer.stateChanged.connect(self.mediaStateChanged)
+        self.mediaPlayer.positionChanged.connect(self.positionChanged)
+        self.mediaPlayer.durationChanged.connect(self.durationChanged)
+        self.mediaPlayer.error.connect(self.handleError)
+        
+        self.layout.addWidget(videoWidget,1,0,10,1)
+        self.layout.addLayout(layout1,11,0,1,1)
+
+    def openFile(self):
+        filedialog = QFileDialog()
+        fileName, file = filedialog.getOpenFileName(self, "Open Movie", QDir.homePath(),"*.mp4")
+
+        if fileName != '':
+            self.labelBaslıq.setText("Name: "+fileName+file)
+            print("file= "+fileName)
+            a=QUrl.fromLocalFile(fileName)
+            print("a= ",a)
+            b=QMediaContent(a)
+            print("b= ",b)
+            c=self.mediaPlayer.setMedia(b)
+            print("c= ",c)
+            self.playButton.setEnabled(True)
+            self.stopButton.setEnabled(True)
+            self.mediaPlayer.play()
+            self.playButton.setHidden(False)
+            self.stopButton.setHidden(False)
+            self.positionSlider.setHidden(False)
+
+    def saveFile(self):
+        QFileDialog.getSaveFileName(self, "Open Movie", QDir.homePath())
+
+    def exitCall(self):
+        sys.exit(app.exec_())
+
+    def play(self):
+        if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
+            self.mediaPlayer.pause()
+        else:
+            self.mediaPlayer.play()
+
+    def stop(self):
+        self.mediaPlayer.stop()
+
+    def mediaStateChanged(self, state):
+        if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
+            self.playButton.setIcon(
+                    self.style().standardIcon(QStyle.SP_MediaPause))
+        else:
+            self.playButton.setIcon(
+                    self.style().standardIcon(QStyle.SP_MediaPlay))
+
+    def positionChanged(self, position):
+        self.positionSlider.setValue(position)
+        self.timeLabel.setText(str(position))
+
+    def durationChanged(self, duration):
+        self.positionSlider.setRange(0, duration)
+
+    def setPosition(self, position):
+        self.mediaPlayer.setPosition(position)
+
+    def handleError(self):
+        self.playButton.setEnabled(False)
+        self.errorLabel.setText("Error: " + self.mediaPlayer.errorString())
+
+    def window_ayarlar(self):
+        self.setWindowTitle("Home")
+        self.setWindowIcon(QIcon('fotos/Title.png'))
+        self.setMinimumWidth(500)
+        self.setMinimumHeight(300)
+        self.layout=QGridLayout()
+        self.setLayout(self.layout)
+
+    def action(self,file, icon,name,short):
+        Act = QAction(QIcon(icon),name, self)
+        Act.setShortcut(short)
+        Act.setStatusTip('Exit applicatiion')
+        Act.triggered.connect(lambda:self.newF(name))
+        file.addAction(Act)
+        
+    def menu(self):
+        menubar = QMenuBar()
+        file=menubar.addMenu("File")
+        icon= "fotos/New.png"
+        name="New"
+        short="Ctrl+N"
+        self.action(file, icon, name, short)
+        
+        file.addSeparator()
+        icon= "fotos/Open.jpg"
+        name="Open"
+        short="Ctrl+O"
+        self.action(file, icon, name, short)
+        
+        file.addSeparator()
+        icon= "fotos/Save.png"
+        name="Save"
+        short="Ctrl+S"
+        self.action(file, icon, name, short)
+        
+        icon= "fotos/Save as.png"
+        name="Save as"
+        short="Ctrl+Shift+S"
+        self.action(file, icon, name, short)
+        
+        file.addSeparator()
+        icon= "fotos/Close.jpg"
+        name="Close"
+        short="Ctrl+X"
+        self.action(file, icon, name, short)
+        
+        edit=menubar.addMenu("Edit")
+        
+        icon= "fotos/Undo.jpg"
+        name="Undo"
+        short="Ctrl+Z"
+        self.action(edit, icon, name, short)
+        
+        icon= "fotos/Redo.jpg"
+        name="Redo"
+        short="Ctrl+Shift+Z"
+        self.action(edit, icon, name, short)
+        
+        edit.addSeparator()
+        
+        icon= "fotos/Select all.png"
+        name="Select all"
+        short="Ctrl+A"
+        self.action(edit, icon, name, short)
+        
+        file.addSeparator()
+        
+        icon= "fotos/Copy.png"
+        name="Copy"
+        short="Ctrl+C"
+        self.action(edit, icon, name, short)
+        
+        icon= "fotos/Past.png"
+        name="Past"
+        short="Ctrl+V"
+        self.action(edit, icon, name, short)
+        
+        serach=menubar.addMenu("Search")
+        serach.addAction("Faind")
+        
+        run=menubar.addMenu("Run")
+        run.addAction("Run")
+        run.addAction("Run all")
+        
+        tool=menubar.addMenu("Tool")
+        tool.addAction("Text")
+        tool.addSeparator()
+        tool.addAction("Icon")
+        tool.addAction("Image")
+        tool.addSeparator()
+        tool.addAction("Font")
+
+        setting=menubar.addMenu("Setting")
+        setting.addAction("Language")
+        
+        help_=menubar.addMenu("Help")
+        help_.addAction("Help tools")
+        help_.addSeparator()
+        help_.addAction("Window")
+        help_.addSeparator()
+        help_.addAction("About")
+        
+        self.layout.addWidget(menubar,0,0,10,1)
+        
+    def newF(self,name):
+        
+        print(name)
+        if name =="Open":
+            self.openFile()
+        elif name=="Close":
+            self.exitCall()
+        elif name=="Save as":
+            self.saveFile()
+        
+if __name__=="__main__":
+    app=QtWidgets.QApplication(sys.argv)
+    window=MainWindo()
+    window.show()
+    sys.exit(app.exec_())
