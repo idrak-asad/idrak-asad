@@ -1,0 +1,86 @@
+import pandas as pd
+from mysql.connector import sql
+
+
+df = pd.read_csv('data_for_de_task.csv')
+
+
+df_user=df[["customerFIN","userLogin"]]
+df_user["name"]=df["userLogin"].str.split('@').str[0]
+df_user["store"]=df["userLogin"].str.split('@').str[1]
+df_user=df_user.drop_duplicates()
+print(df_user) 
+#user table was created above and the duplicate data was deleted.
+
+
+df_product=df[["category","product", "unit"]]
+df_product=df_product.drop_duplicates()
+print(df_product)
+#product table was created above and the duplicate data was deleted.
+
+
+
+df_order=df[["userLogin","loginDateTime","orderId","orderDateTime","product","totalPrice","prodCount"]]
+print(df_order)
+#order table was created above and the duplicate data was deleted.
+
+print(df_order["totalPrice"].dtype) #totalPrice's data type checked and no extraneous data type was found
+print(df_order[df_order["totalPrice"]<=0]) #TotalPrice's 0 and negative data were checked and no extraneous information was found
+
+
+
+
+#___________________________________  Inserting Data  ____________________________________
+
+
+
+mydb = sql.connect(
+  host="xxx.xxx.xxx.xxx",
+  user="user",
+  password="psw",
+  database="online_sales"
+)
+#joined the mysql database above.
+
+
+try:
+    for data in df_product.values:
+        insrt="Insert into products (category, product, unit) Values('{category}','{product}', '{unit}');".format(category=data[0], product=data[1], unit=data[2])
+        print(insrt)
+        mycursor = mydb.cursor()
+        mycursor.execute(insrt)
+    mydb.commit()
+except Exception as ex:
+    print("Products Inserting problem")
+#product data is loaded into the products table
+
+
+try:
+    for data in df_user.values:
+        
+        insrt="""Insert into login (customerFIN, userLogin, name, store) 
+        Values('{customerFIN}','{userLogin}', '{name}','{store}');
+        """.format(customerFIN=data[0], userLogin=data[1], name=data[2], store=data[3])
+        print(insrt)
+        mycursor = mydb.cursor()
+        mycursor.execute(insrt)
+    mydb.commit()
+except Exception as ex:
+    print("User Inserting problem")
+#user data is loaded into the login table
+
+
+try:
+    for data in df_order.values:
+        
+        insrt="""Insert into orders (userLogin, loginDateTime, orderId, orderDateTime, product, totalPrice, prodCount) 
+        Values('{userLogin}','{loginDateTime}', '{orderId}', '{orderDateTime}', '{product}', '{totalPrice}', '{prodCount}');
+        """.format(userLogin=data[0], loginDateTime=data[1], orderId=data[2], orderDateTime=data[3], product=data[4], totalPrice=data[5], prodCount=data[6])
+        #print(insrt)
+        mycursor = mydb.cursor()
+        mycursor.execute(insrt)
+    mydb.commit()
+    print("Orders Inserting finished")
+except Exception as ex:
+    print("Orders Inserting problem")
+#order data is loaded into the orders table
